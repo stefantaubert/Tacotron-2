@@ -6,7 +6,7 @@ from infolog import log
 from tacotron.models.achitecture_wrappers.TacotronDecoderCell import TacotronDecoderCell
 from tacotron.models.achitecture_wrappers.TacotronEncoderCell import TacotronEncoderCell
 #from tacotron.models.Architecture_wrappers import TacotronEncoderCell, TacotronDecoderCell
-from tacotron.models.custom_decoder import CustomDecoder
+from tacotron.models.CustomDecoder import CustomDecoder
 from tacotron.models.LocationSensitiveAttention import LocationSensitiveAttention
 from tacotron.models.modules.CBHG import CBHG
 from tacotron.models.modules.DecoderRNN import DecoderRNN

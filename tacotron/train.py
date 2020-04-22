@@ -10,7 +10,7 @@ import numpy as np
 import tensorflow as tf
 from datasets import audio
 from hparams import hparams_debug_string
-from tacotron.feeder import Feeder
+from tacotron.Feeder import Feeder
 from tacotron.models import create_model
 from tacotron.utils import ValueWindow, plot
 from tacotron.utils.text import sequence_to_text

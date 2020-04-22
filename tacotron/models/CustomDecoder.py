@@ -5,17 +5,13 @@ import collections
 import tensorflow as tf
 from tacotron.models.TacoTestHelper import TacoTestHelper
 from tacotron.models.TacoTrainingHelper import TacoTrainingHelper
+from tacotron.models.CustomDecoderOutput import CustomDecoderOutput
 from tensorflow.contrib.seq2seq.python.ops import decoder
 from tensorflow.contrib.seq2seq.python.ops import helper as helper_py
 from tensorflow.python.framework import ops, tensor_shape
 from tensorflow.python.layers import base as layers_base
 from tensorflow.python.ops import rnn_cell_impl
 from tensorflow.python.util import nest
-
-
-class CustomDecoderOutput(
-		collections.namedtuple("CustomDecoderOutput", ("rnn_output", "token_output", "sample_id"))):
-	pass
 
 
 class CustomDecoder(decoder.Decoder):
