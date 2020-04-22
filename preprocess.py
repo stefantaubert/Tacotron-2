@@ -95,7 +95,7 @@ def main():
 	parser.add_argument('--reader', default='mary_ann')
 	parser.add_argument('--merge_books', default='False')
 	parser.add_argument('--book', default='northandsouth')
-	parser.add_argument('--output', default='training_data')
+	parser.add_argument('--output', default='/datasets/models/tacotron2/training_data')
 	parser.add_argument('--n_jobs', type=int, default=cpu_count())
 	args = parser.parse_args()
 

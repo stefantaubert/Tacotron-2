@@ -45,7 +45,8 @@ def train(args, log_dir, hparams):
 	#Get training states
 	(taco_state, GTA_state, wave_state), input_path = read_seq(state_file)
 
-	if not taco_state:
+	if False:
+	#if not taco_state:
 		log('\n#############################################################\n')
 		log('Tacotron Train\n')
 		log('###########################################################\n')
@@ -59,8 +60,9 @@ def train(args, log_dir, hparams):
 		save_seq(state_file, [taco_state, GTA_state, wave_state], input_path)
 	else:
 		checkpoint = os.path.join(log_dir, 'taco_pretrained/')
-
-	if not GTA_state:
+	
+	if False:
+	#if not GTA_state:
 		log('\n#############################################################\n')
 		log('Tacotron GTA Synthesis\n')
 		log('###########################################################\n')
@@ -94,11 +96,11 @@ def main():
 	parser.add_argument('--base_dir', default='')
 	parser.add_argument('--hparams', default='',
 		help='Hyperparameter overrides as a comma-separated list of name=value pairs')
-	parser.add_argument('--tacotron_input', default='training_data/train.txt')
+	parser.add_argument('--tacotron_input', default='/datasets/models/tacotron2/training_data/train.txt')
 	parser.add_argument('--wavenet_input', default='tacotron_output/gta/map.txt')
 	parser.add_argument('--name', help='Name of logging directory.')
 	parser.add_argument('--model', default='Tacotron-2')
-	parser.add_argument('--input_dir', default='training_data', help='folder to contain inputs sentences/targets')
+	parser.add_argument('--input_dir', default='/datasets/models/tacotron2/training_data', help='folder to contain inputs sentences/targets')
 	parser.add_argument('--output_dir', default='output', help='folder to contain synthesized mel spectrograms')
 	parser.add_argument('--mode', default='synthesis', help='mode for synthesis of tacotron after training')
 	parser.add_argument('--GTA', default='True', help='Ground truth aligned synthesis, defaults to True, only considered in Tacotron synthesis mode')
@@ -107,7 +109,7 @@ def main():
 		help='Steps between running summary ops')
 	parser.add_argument('--embedding_interval', type=int, default=5000,
 		help='Steps between updating embeddings projection visualization')
-	parser.add_argument('--checkpoint_interval', type=int, default=2500,
+	parser.add_argument('--checkpoint_interval', type=int, default=2,#2500,
 		help='Steps between writing checkpoints')
 	parser.add_argument('--eval_interval', type=int, default=5000,
 		help='Steps between eval on test data')
