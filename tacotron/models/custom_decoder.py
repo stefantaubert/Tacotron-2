@@ -3,7 +3,8 @@ from __future__ import absolute_import, division, print_function
 import collections
 
 import tensorflow as tf
-from tacotron.models.helpers import TacoTestHelper, TacoTrainingHelper
+from tacotron.models.TacoTestHelper import TacoTestHelper
+from tacotron.models.TacoTrainingHelper import TacoTrainingHelper
 from tensorflow.contrib.seq2seq.python.ops import decoder
 from tensorflow.contrib.seq2seq.python.ops import helper as helper_py
 from tensorflow.python.framework import ops, tensor_shape

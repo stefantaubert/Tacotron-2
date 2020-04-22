@@ -1,70 +1,13 @@
-"""A set of wrappers usefull for tacotron 2 architecture
-All notations and variable names were used in concordance with originial tensorflow implementation
-"""
-import collections
-
-import numpy as np
 import tensorflow as tf
-from tacotron.models.attention import _compute_attention
 from tensorflow.contrib.rnn import RNNCell
 from tensorflow.python.framework import ops, tensor_shape
-from tensorflow.python.ops import array_ops, check_ops, rnn_cell_impl, tensor_array_ops
+from tensorflow.python.ops import (array_ops, check_ops, rnn_cell_impl, tensor_array_ops)
 from tensorflow.python.util import nest
 
+from tacotron.models.achitecture_wrappers.TacotronDecoderCellState import TacotronDecoderCellState
+from tacotron.models.LocationSensitiveAttention import _compute_attention
+
 _zero_state_tensors = rnn_cell_impl._zero_state_tensors
-
-
-
-class TacotronEncoderCell(RNNCell):
-	"""Tacotron 2 Encoder Cell
-	Passes inputs through a stack of convolutional layers then through a bidirectional LSTM
-	layer to predict the hidden representation vector (or memory)
-	"""
-
-	def __init__(self, convolutional_layers, lstm_layer):
-		"""Initialize encoder parameters
-
-		Args:
-			convolutional_layers: Encoder convolutional block class
-			lstm_layer: encoder bidirectional lstm layer class
-		"""
-		super(TacotronEncoderCell, self).__init__()
-		#Initialize encoder layers
-		self._convolutions = convolutional_layers
-		self._cell = lstm_layer
-
-	def __call__(self, inputs, input_lengths=None):
-		#Pass input sequence through a stack of convolutional layers
-		conv_output = self._convolutions(inputs)
-
-		#Extract hidden representation from encoder lstm cells
-		hidden_representation = self._cell(conv_output, input_lengths)
-
-		#For shape visualization
-		self.conv_output_shape = conv_output.shape
-		return hidden_representation
-
-
-class TacotronDecoderCellState(
-	collections.namedtuple("TacotronDecoderCellState",
-	 ("cell_state", "attention", "time", "alignments",
-	  "alignment_history", "max_attentions"))):
-	"""`namedtuple` storing the state of a `TacotronDecoderCell`.
-	Contains:
-	  - `cell_state`: The state of the wrapped `RNNCell` at the previous time
-		step.
-	  - `attention`: The attention emitted at the previous time step.
-	  - `time`: int32 scalar containing the current time step.
-	  - `alignments`: A single or tuple of `Tensor`(s) containing the alignments
-		 emitted at the previous time step for each attention mechanism.
-	  - `alignment_history`: a single or tuple of `TensorArray`(s)
-		 containing alignment matrices from all time steps for each attention
-		 mechanism. Call `stack()` on each to convert to a `Tensor`.
-	"""
-	def replace(self, **kwargs):
-		"""Clones the current state while overwriting components provided by kwargs.
-		"""
-		return super(TacotronDecoderCellState, self)._replace(**kwargs)
 
 class TacotronDecoderCell(RNNCell):
 	"""Tactron 2 Decoder Cell

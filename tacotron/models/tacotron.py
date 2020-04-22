@@ -1,14 +1,28 @@
-import tensorflow as tf 
-from tacotron.utils.symbols import symbols
-from infolog import log
-from tacotron.models.helpers import TacoTrainingHelper, TacoTestHelper
-from tacotron.models.modules import *
-from tensorflow.contrib.seq2seq import dynamic_decode
-from tacotron.models.Architecture_wrappers import TacotronEncoderCell, TacotronDecoderCell
-from tacotron.models.custom_decoder import CustomDecoder
-from tacotron.models.attention import LocationSensitiveAttention
-
 import numpy as np
+import tensorflow as tf
+from tensorflow.contrib.seq2seq import dynamic_decode
+
+from infolog import log
+from tacotron.models.achitecture_wrappers.TacotronDecoderCell import TacotronDecoderCell
+from tacotron.models.achitecture_wrappers.TacotronEncoderCell import TacotronEncoderCell
+#from tacotron.models.Architecture_wrappers import TacotronEncoderCell, TacotronDecoderCell
+from tacotron.models.custom_decoder import CustomDecoder
+from tacotron.models.LocationSensitiveAttention import LocationSensitiveAttention
+from tacotron.models.modules.CBHG import CBHG
+from tacotron.models.modules.DecoderRNN import DecoderRNN
+from tacotron.models.modules.EncoderConvolutions import EncoderConvolutions
+from tacotron.models.modules.EncoderRNN import EncoderRNN
+from tacotron.models.modules.FrameProjection import FrameProjection
+from tacotron.models.modules.HighwayNet import HighwayNet
+from tacotron.models.modules.helpers import *
+from tacotron.models.modules.Postnet import Postnet
+from tacotron.models.modules.Prenet import Prenet
+from tacotron.models.modules.StopProjection import StopProjection
+from tacotron.models.modules.ZoneoutLSTMCell import ZoneoutLSTMCell
+from tacotron.models.TacoTestHelper import TacoTestHelper
+from tacotron.models.TacoTrainingHelper import TacoTrainingHelper
+from tacotron.utils.symbols import symbols
+
 
 def split_func(x, split_pos):
 	rst = []
