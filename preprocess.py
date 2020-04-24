@@ -31,73 +31,60 @@ def write_metadata(metadata, out_dir):
 	print('Max mel frames length: {}'.format(max(int(m[4]) for m in metadata)))
 	print('Max audio timesteps length: {}'.format(max(m[3] for m in metadata)))
 
-def norm_data(args):
+def _get_mel_dir(caching_dir: str) => str:
+	''' the directory to write the mel spectograms into '''
+	path = os.path.join(caching_dir, 'mels')
+	return path
 
-	merge_books = (args.merge_books=='True')
+def _get_wav_dir(caching_dir: str) => str:
+	''' the directory to write the preprocessed wav into '''
+	path = os.path.join(caching_dir, 'audio')
+	return path
+	
+def _get_linear_spectrograms_dir(caching_dir: str) => str:
+	''' the directory to write the linear spectrograms into '''
+	path = os.path.join(caching_dir, 'linear')
+	return path
+	
+def _ensure_folders_exist(caching_dir: str):
+	os.makedirs(caching_dir)
 
-	print('Selecting data folders..')
-	supported_datasets = ['LJSpeech-1.0', 'LJSpeech-1.1', 'M-AILABS']
-	if args.dataset not in supported_datasets:
-		raise ValueError('dataset value entered {} does not belong to supported datasets: {}'.format(
-			args.dataset, supported_datasets))
+	mel_dir = _get_mel_dir(caching_dir)
+	os.makedirs(_get_mel_dir(caching_dir), exist_ok=True)
 
-	if args.dataset.startswith('LJSpeech'):
-		return [os.path.join(args.base_dir, args.dataset)]
+	wav_dir = _get_wav_dir(caching_dir)
+	os.makedirs(_get_mel_dir(wav_dir), exist_ok=True)
 
-
-	if args.dataset == 'M-AILABS':
-		supported_languages = ['en_US', 'en_UK', 'fr_FR', 'it_IT', 'de_DE', 'es_ES', 'ru_RU',
-			'uk_UK', 'pl_PL', 'nl_NL', 'pt_PT', 'fi_FI', 'se_SE', 'tr_TR', 'ar_SA']
-		if args.language not in supported_languages:
-			raise ValueError('Please enter a supported language to use from M-AILABS dataset! \n{}'.format(
-				supported_languages))
-
-		supported_voices = ['female', 'male', 'mix']
-		if args.voice not in supported_voices:
-			raise ValueError('Please enter a supported voice option to use from M-AILABS dataset! \n{}'.format(
-				supported_voices))
-
-		path = os.path.join(args.base_dir, args.language, 'by_book', args.voice)
-		supported_readers = [e for e in os.listdir(path) if os.path.isdir(os.path.join(path,e))]
-		if args.reader not in supported_readers:
-			raise ValueError('Please enter a valid reader for your language and voice settings! \n{}'.format(
-				supported_readers))
-
-		path = os.path.join(path, args.reader)
-		supported_books = [e for e in os.listdir(path) if os.path.isdir(os.path.join(path,e))]
-		if merge_books:
-			return [os.path.join(path, book) for book in supported_books]
-
-		else:
-			if args.book not in supported_books:
-				raise ValueError('Please enter a valid book for your reader settings! \n{}'.format(
-					supported_books))
-
-			return [os.path.join(path, args.book)]
-
-
-def run_preprocess(args, hparams):
-	input_folders = norm_data(args)
-	output_folder = os.path.join(args.base_dir, args.output)
-
-	preprocess(args, input_folders, output_folder, hparams)
-
+	linear_dir = _get_linear_spectrograms_dir(caching_dir)
+	os.makedirs(_get_mel_dir(linear_dir), exist_ok=True)
 
 def main():
 	print('initializing preprocessing..')
 	parser = argparse.ArgumentParser()
+	parser.add_argument('--dataset_path', default='/datasets/LJSpeech-1.1-lite')
+	parser.add_argument('--cache_path', default='/datasets/models/tacotron/cache')
+	parser.add_argument('--n_jobs', type=int, default=cpu_count())
+
+
+
 	parser.add_argument('--base_dir', default='')
 	parser.add_argument('--hparams', default='',
 		help='Hyperparameter overrides as a comma-separated list of name=value pairs')
 	parser.add_argument('--dataset', default='LJSpeech-1.1')
+	
 	parser.add_argument('--language', default='en_US')
 	parser.add_argument('--voice', default='female')
 	parser.add_argument('--reader', default='mary_ann')
 	parser.add_argument('--merge_books', default='False')
 	parser.add_argument('--book', default='northandsouth')
 	parser.add_argument('--output', default='/datasets/models/tacotron2/training_data')
-	parser.add_argument('--n_jobs', type=int, default=cpu_count())
 	args = parser.parse_args()
+
+	if not os.path.exists(args.dataset_path):
+		print("Dataset not found", args.dataset_path)
+
+	_ensure_folders_exist(args.cache_path)
+
 
 	modified_hp = hparams.parse(args.hparams)
 
