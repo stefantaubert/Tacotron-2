@@ -61,8 +61,8 @@ def train(args, log_dir, hparams):
 	else:
 		checkpoint = os.path.join(log_dir, 'taco_pretrained/')
 	
-	if False:
-	#if not GTA_state:
+	#if False:
+	if not GTA_state:
 		log('\n#############################################################\n')
 		log('Tacotron GTA Synthesis\n')
 		log('###########################################################\n')
