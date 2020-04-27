@@ -51,7 +51,7 @@ class LJSpeechDatasetParser():
     basename = parts[0]
     wav_path = os.path.join(self.wav_dirpath, '{}.wav'.format(basename))
     text = parts[2]
-    tmp = (text, wav_path)
+    tmp = (basename, text, wav_path)
     return tmp
 
 if __name__ == "__main__":

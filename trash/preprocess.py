@@ -8,12 +8,7 @@ from tqdm import tqdm
 
 
 def preprocess(args, input_folders, out_dir, hparams):
-	mel_dir = os.path.join(out_dir, 'mels')
-	wav_dir = os.path.join(out_dir, 'audio')
-	linear_dir = os.path.join(out_dir, 'linear')
-	os.makedirs(mel_dir, exist_ok=True)
-	os.makedirs(wav_dir, exist_ok=True)
-	os.makedirs(linear_dir, exist_ok=True)
+
 	metadata = preprocessor.build_from_path(hparams, input_folders, mel_dir, linear_dir, wav_dir, args.n_jobs, tqdm=tqdm)
 	write_metadata(metadata, out_dir)
 
@@ -30,33 +25,6 @@ def write_metadata(metadata, out_dir):
 	print('Max input length (text chars): {}'.format(max(len(m[5]) for m in metadata)))
 	print('Max mel frames length: {}'.format(max(int(m[4]) for m in metadata)))
 	print('Max audio timesteps length: {}'.format(max(m[3] for m in metadata)))
-
-def _get_mel_dir(caching_dir: str) => str:
-	''' the directory to write the mel spectograms into '''
-	path = os.path.join(caching_dir, 'mels')
-	return path
-
-def _get_wav_dir(caching_dir: str) => str:
-	''' the directory to write the preprocessed wav into '''
-	path = os.path.join(caching_dir, 'audio')
-	return path
-	
-def _get_linear_spectrograms_dir(caching_dir: str) => str:
-	''' the directory to write the linear spectrograms into '''
-	path = os.path.join(caching_dir, 'linear')
-	return path
-	
-def _ensure_folders_exist(caching_dir: str):
-	os.makedirs(caching_dir)
-
-	mel_dir = _get_mel_dir(caching_dir)
-	os.makedirs(_get_mel_dir(caching_dir), exist_ok=True)
-
-	wav_dir = _get_wav_dir(caching_dir)
-	os.makedirs(_get_mel_dir(wav_dir), exist_ok=True)
-
-	linear_dir = _get_linear_spectrograms_dir(caching_dir)
-	os.makedirs(_get_mel_dir(linear_dir), exist_ok=True)
 
 def main():
 	print('initializing preprocessing..')
@@ -79,12 +47,6 @@ def main():
 	parser.add_argument('--book', default='northandsouth')
 	parser.add_argument('--output', default='/datasets/models/tacotron2/training_data')
 	args = parser.parse_args()
-
-	if not os.path.exists(args.dataset_path):
-		print("Dataset not found", args.dataset_path)
-
-	_ensure_folders_exist(args.cache_path)
-
 
 	modified_hp = hparams.parse(args.hparams)
 
