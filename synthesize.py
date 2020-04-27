@@ -48,8 +48,7 @@ def main():
 	accepted_modes = ['eval', 'synthesis', 'live']
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--checkpoint', default='pretrained/', help='Path to model checkpoint')
-	parser.add_argument('--hparams', default='',
-		help='Hyperparameter overrides as a comma-separated list of name=value pairs')
+	parser.add_argument('--hparams', default='', help='Hyperparameter overrides as a comma-separated list of name=value pairs')
 	parser.add_argument('--name', help='Name of logging directory if the two models were trained together.')
 	parser.add_argument('--tacotron_name', help='Name of logging directory of Tacotron. If trained separately')
 	parser.add_argument('--wavenet_name', help='Name of logging directory of WaveNet. If trained separately')

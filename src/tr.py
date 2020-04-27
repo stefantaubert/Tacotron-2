@@ -1,1 +1,1 @@
-from src
+from src.preprocessing.LJSpeechDatasetParser import LJSpeechDatasetParser

@@ -11,7 +11,7 @@ import numpy as np
 import tensorflow as tf
 from hparams import hparams_debug_string
 from datasets.audio import save_wavenet_wav, melspectrogram
-from tacotron.utils import ValueWindow
+from tacotron.utils.ValueWindow import ValueWindow
 from wavenet_vocoder.feeder import Feeder, _interp
 from wavenet_vocoder.models import create_model
 

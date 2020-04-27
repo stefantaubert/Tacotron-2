@@ -21,8 +21,8 @@ from tacotron.models.modules.StopProjection import StopProjection
 from tacotron.models.modules.ZoneoutLSTMCell import ZoneoutLSTMCell
 from tacotron.models.TacoTestHelper import TacoTestHelper
 from tacotron.models.TacoTrainingHelper import TacoTrainingHelper
-from tacotron.utils.symbols import symbols
-
+#from tacotron.utils.symbols import symbols
+from src.preprocessing.text.symbols import symbols_count
 
 def split_func(x, split_pos):
 	rst = []
@@ -125,7 +125,7 @@ class Tacotron():
 
 					# Embeddings ==> [batch_size, sequence_length, embedding_dim]
 					self.embedding_table = tf.get_variable(
-						'inputs_embedding', [len(symbols), hp.embedding_dim], dtype=tf.float32)
+						'inputs_embedding', [symbols_count, hp.embedding_dim], dtype=tf.float32)
 					embedded_inputs = tf.nn.embedding_lookup(self.embedding_table, tower_inputs[i])
 
 

@@ -11,10 +11,14 @@ from infolog import log
 from librosa import effects
 from tacotron.models import create_model
 from tacotron.utils import plot
-from tacotron.utils.text import text_to_sequence
+#from tacotron.utils.text import text_to_sequence
+from src.preprocessing.TextProcessor import TextProcessor
 
 
 class Synthesizer:
+	def __init__(self):
+		self._text_processor = TextProcessor()
+
 	def load(self, checkpoint_path, hparams, gta=False, model_name='Tacotron'):
 		log('Constructing model: %s' % model_name)
 		#Force the batch size to be known in order to use attention masking in batch synthesis
@@ -85,7 +89,8 @@ class Synthesizer:
 				mel_filenames.append(mel_filenames[-1])
 
 		assert 0 == len(texts) % self._hparams.tacotron_num_gpus
-		seqs = [np.asarray(text_to_sequence(text, cleaner_names)) for text in texts]
+		seqs = [self._text_processor.text_to_sequence(text) for text in texts]
+		#- seqs = [np.asarray(text_to_sequence(text, cleaner_names)) for text in texts]
 		input_lengths = [len(seq) for seq in seqs]
 
 		size_per_device = len(seqs) // self._hparams.tacotron_num_gpus

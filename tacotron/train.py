@@ -10,11 +10,14 @@ import numpy as np
 import tensorflow as tf
 from datasets import audio
 from hparams import hparams_debug_string
+from src.preprocessing.TextProcessor import TextProcessor
+from src.preprocessing.text.symbols import save_to_file as save_symbols_to_file
 from tacotron.Feeder import Feeder
 from tacotron.models import create_model
-from tacotron.utils import ValueWindow, plot
-from tacotron.utils.text import sequence_to_text
-from tacotron.utils.symbols import symbols
+from tacotron.utils.ValueWindow import ValueWindow
+from tacotron.utils import plot
+#from tacotron.utils.text import sequence_to_text
+#from tacotron.utils.symbols import symbols
 from tqdm import tqdm
 
 log = infolog.log
@@ -112,6 +115,7 @@ def model_test_mode(args, feeder, hparams, global_step):
 		return model
 
 def train(log_dir, args, hparams):
+	text_processor = TextProcessor()
 	save_dir = os.path.join(log_dir, 'taco_pretrained')
 	plot_dir = os.path.join(log_dir, 'plots')
 	wav_dir = os.path.join(log_dir, 'wavs')
@@ -158,14 +162,7 @@ def train(log_dir, args, hparams):
 
 	#Embeddings metadata
 	char_embedding_meta = os.path.join(meta_folder, 'CharacterEmbeddings.tsv')
-	if not os.path.isfile(char_embedding_meta):
-		with open(char_embedding_meta, 'w', encoding='utf-8') as f:
-			for symbol in symbols:
-				if symbol == ' ':
-					symbol = '\\s' #For visual purposes, swap space with \s
-
-				f.write('{}\n'.format(symbol))
-
+	save_symbols_to_file(char_embedding_meta)
 	char_embedding_meta = char_embedding_meta.replace(log_dir, '..')
 
 	#Potential Griffin-Lim GPU setup
@@ -376,7 +373,8 @@ def train(log_dir, args, hparams):
 					plot.plot_spectrogram(mel_prediction, os.path.join(plot_dir, 'step-{}-mel-spectrogram.png'.format(step)),
 						title='{}, {}, step={}, loss={:.5f}'.format(args.model, time_string(), step, loss), target_spectrogram=target,
 						max_len=target_length)
-					log('Input at step {}: {}'.format(step, sequence_to_text(input_seq)))
+					original_text = text_processor.sequence_to_text(input_seq)
+					log('Input at step {}: {}'.format(step, original_text))
 
 				if step % args.embedding_interval == 0 or step == args.tacotron_train_steps or step == 1:
 					#Get current checkpoint state

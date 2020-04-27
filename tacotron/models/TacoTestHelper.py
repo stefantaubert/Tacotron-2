@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.seq2seq import Helper
+from tacotron.models.TacoTrainingHelper import _go_frames
 
 class TacoTestHelper(Helper):
 	def __init__(self, batch_size, hparams):

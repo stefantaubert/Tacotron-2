@@ -6,7 +6,7 @@ from datasets.audio import save_wavenet_wav, get_hop_size, melspectrogram
 from infolog import log
 from wavenet_vocoder.models import create_model
 from wavenet_vocoder.train import create_shadow_saver, load_averaged_model
-from wavenet_vocoder.Feeder import _interp
+from wavenet_vocoder.feeder import _interp
 
 from . import util
 

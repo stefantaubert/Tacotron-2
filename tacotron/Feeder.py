@@ -7,7 +7,8 @@ import numpy as np
 import tensorflow as tf
 from infolog import log
 from sklearn.model_selection import train_test_split
-from tacotron.utils.text import text_to_sequence
+#from tacotron.utils.text import text_to_sequence
+from src.preprocessing.TextProcessor import TextProcessor
 
 _batches_per_group = 64
 
@@ -21,6 +22,7 @@ class Feeder:
 		self._coord = coordinator
 		self._hparams = hparams
 		self._cleaner_names = [x.strip() for x in hparams.cleaners.split(',')]
+		self._text_processor = TextProcessor()
 		self._train_offset = 0
 		self._test_offset = 0
 
@@ -124,7 +126,8 @@ class Feeder:
 
 		text = meta[5]
 
-		input_data = np.asarray(text_to_sequence(text, self._cleaner_names), dtype=np.int32)
+		input_data = self._text_processor.text_to_sequence(text)
+		#- input_data = np.asarray(text_to_sequence(text, self._cleaner_names), dtype=np.int32)
 		mel_target = np.load(os.path.join(self._mel_dir, meta[1]))
 		#Create parallel sequences containing zeros to represent a non finished sequence
 		token_target = np.asarray([0.] * (len(mel_target) - 1))
@@ -187,8 +190,8 @@ class Feeder:
 		self._train_offset += 1
 
 		text = meta[5]
-
-		input_data = np.asarray(text_to_sequence(text, self._cleaner_names), dtype=np.int32)
+		input_data = self._text_processor.text_to_sequence(text)
+		#- input_data = np.asarray(text_to_sequence(text, self._cleaner_names), dtype=np.int32)
 		mel_target = np.load(os.path.join(self._mel_dir, meta[1]))
 		#Create parallel sequences containing zeros to represent a non finished sequence
 		token_target = np.asarray([0.] * (len(mel_target) - 1))
