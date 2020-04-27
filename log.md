@@ -20,12 +20,16 @@ source /home/mi/.bashrc
 
 ## init repo with gpu support
 ```
-ln -s /datasets/LJSpeech-1.1-lite/ /home/mi/code/Tacotron-2/LJSpeech-1.1
+ln -s /datasets/LJSpeech-1.1-lite/ /datasets/code/Tacotron-2/LJSpeech-1.1
+ln -s /datasets/models/tacotron2/output/ /datasets/code/Tacotron-2/tacotron_output
 sudo apt-get install -y libasound-dev portaudio19-dev libportaudio2 libportaudiocpp0 ffmpeg
 conda create -n tacotron2 python=3.6
 conda activate tacotron2
 pip install -r req_tf_1.13.1_all.txt
 ```
+
+add: to launch.json
+`"env": {"PYTHONPATH":"${workspaceFolder}"}`
 
 ## misc
 To free up space:
