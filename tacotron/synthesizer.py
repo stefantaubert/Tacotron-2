@@ -12,12 +12,12 @@ from librosa import effects
 from tacotron.models import create_model
 from tacotron.utils import plot
 #from tacotron.utils.text import text_to_sequence
-from src.preprocessing.TextProcessor import TextProcessor
+from src.preprocessing.text.conversion.SymbolConverter import SymbolConverter
 
 
 class Synthesizer:
 	def __init__(self):
-		self._text_processor = TextProcessor()
+		self._symbol_converter = SymbolConverter()
 
 	def load(self, checkpoint_path, hparams, gta=False, model_name='Tacotron'):
 		log('Constructing model: %s' % model_name)
@@ -74,7 +74,6 @@ class Synthesizer:
 		saver = tf.train.Saver()
 		saver.restore(self.session, checkpoint_path)
 
-
 	def synthesize(self, texts, basenames, out_dir, log_dir, mel_filenames):
 		hparams = self._hparams
 		cleaner_names = [x.strip() for x in hparams.cleaners.split(',')]
@@ -89,7 +88,7 @@ class Synthesizer:
 				mel_filenames.append(mel_filenames[-1])
 
 		assert 0 == len(texts) % self._hparams.tacotron_num_gpus
-		seqs = [self._text_processor.text_to_sequence(text) for text in texts]
+		seqs = [self._symbol_converter.text_to_sequence(text) for text in texts]
 		#- seqs = [np.asarray(text_to_sequence(text, cleaner_names)) for text in texts]
 		input_lengths = [len(seq) for seq in seqs]
 
@@ -201,7 +200,7 @@ class Synthesizer:
 
 			# Write the spectrogram to disk
 			# Note: outputs mel-spectrogram files and target ones have same names, just different folders
-			mel_filename = os.path.join(out_dir, 'mel-{}.npy'.format(basenames[i]))
+			mel_filename = os.path.join(out_dir, '{}.npy'.format(basenames[i]))
 			np.save(mel_filename, mel, allow_pickle=False)
 			saved_mels_paths.append(mel_filename)
 

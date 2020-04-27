@@ -4,6 +4,7 @@ from src.etc.Logger import Logger
 class LJSpeechDatasetParser():
   def __init__(self, path: str, logger: Logger = Logger()):
     self.logger = logger
+    self.data = None
 
     if not os.path.exists(path):
       print("Directory not found:", path)
@@ -25,18 +26,22 @@ class LJSpeechDatasetParser():
 
   def parse(self) -> tuple:
     ''' returns tuples of each utterance string and wav filepath '''
-    self.logger.log("reading utterances", level=1)
-    index = 1
-    result = []
+    data_is_already_parsed = self.data != None
 
-    with open(self.metadata_filepath, encoding='utf-8') as f:
-      for line in f:
-        tmp = self._parse_line(line)
-        result.append(tmp)
+    if not data_is_already_parsed:
+      self.logger.log("reading utterances", level=1)
+      index = 1
+      result = []
 
-    self.logger.log("finished.", level=1)
+      with open(self.metadata_filepath, encoding='utf-8') as f:
+        for line in f:
+          tmp = self._parse_line(line)
+          result.append(tmp)
 
-    return result
+      self.logger.log("finished.", level=1)
+      self.data = result
+
+    return self.data
 
   def _get_wav_dirpath(self) -> str:
     result = os.path.join(self.path, 'wavs')

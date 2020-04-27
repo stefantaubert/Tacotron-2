@@ -7,74 +7,10 @@ from tqdm import tqdm
 from hparams import hparams
 
 from datasets import audio
-from src.preprocessing.LJSpeechDatasetParser import LJSpeechDatasetParser
+from src.preprocessing.parser.LJSpeechDatasetParser import LJSpeechDatasetParser
 from wavenet_vocoder.util import (is_mulaw, is_mulaw_quantize, mulaw, mulaw_quantize)
 
-def get_wav_dir(caching_dir: str) -> str:
-  ''' The directory to write the preprocessed wav into. '''
-  return os.path.join(caching_dir, 'audio')
-
-def get_mel_dir(caching_dir: str) -> str:
-  ''' The directory to write the mel spectograms into. '''
-  return os.path.join(caching_dir, 'mels')
-
-def get_lin_dir(caching_dir: str) -> str:
-  ''' The directory to write the linear spectrograms into. '''
-  return os.path.join(caching_dir, 'linear')
-
-def get_train_txt(caching_dir: str) -> str:
-  ''' The file that contain all preprocessed traindata metadata. '''
-  return os.path.join(caching_dir, 'train.txt')
-
-class WavProcessor():
-  def __init__(self, hp: hparams, caching_dir: str):
-    self.hp = hp
-    self._set_paths(caching_dir)
-    self._ensure_folders_exist()
-
-  def process(self, dataset: LJSpeechDatasetParser, n_jobs):
-    utterances = dataset.parse()
-    executor = ProcessPoolExecutor(max_workers=n_jobs)
-    futures = []
-    for basename, text, wav in utterances:
-        process = partial(_process_utterance, self.mel_dir, self.linear_dir, self.wav_dir, basename, wav, text, self.hp)
-        x = executor.submit(process)
-        futures.append(x)
-
-    self.processing_result = [future.result() for future in tqdm(futures) if future.result() is not None]
-
-  def save_results(self):
-    assert self.processing_result
-    with open(self.out_train_filepath, 'w', encoding='utf-8') as f:
-      for m in self.processing_result:
-        line = '|'.join([str(x) for x in m]) + '\n'
-        f.write(line)
-
-  def show_stats(self):
-    assert self.processing_result
-    mel_frames = sum([int(m[4]) for m in self.processing_result])
-    timesteps = sum([int(m[3]) for m in self.processing_result])
-    sr = self.hp.sample_rate
-    hours = timesteps / sr / 3600
-    print('Written {} utterances, {} mel frames, {} audio timesteps, ({:.2f} hours)'.format(len(self.processing_result), mel_frames, timesteps, hours))
-    print('Max input length (text chars): {}'.format(max(len(m[5]) for m in self.processing_result)))
-    print('Max mel frames length: {}'.format(max(int(m[4]) for m in self.processing_result)))
-    print('Max audio timesteps length: {}'.format(max(m[3] for m in self.processing_result)))
-
-  def _set_paths(self, caching_dir: str):
-    self.caching_dir = caching_dir
-    self.mel_dir = get_mel_dir(caching_dir)
-    self.wav_dir = get_wav_dir(caching_dir)
-    self.linear_dir = get_lin_dir(caching_dir)
-    self.out_train_filepath = get_train_txt(caching_dir)
-
-  def _ensure_folders_exist(self):
-    os.makedirs(self.caching_dir, exist_ok=True)
-    os.makedirs(self.mel_dir, exist_ok=True)
-    os.makedirs(self.wav_dir, exist_ok=True)
-    os.makedirs(self.linear_dir, exist_ok=True)
-
-def _process_utterance(mel_dir: str, linear_dir: str, wav_dir: str, basename: str, wav_path: str, text: str, hp: hparams):
+def process_utterance(mel_dir: str, linear_dir: str, wav_dir: str, basename: str, wav_path: str, hp: hparams):
   """
   Preprocesses a single utterance wav/text pair
 
@@ -183,13 +119,15 @@ def _process_utterance(mel_dir: str, linear_dir: str, wav_dir: str, basename: st
   time_steps = len(out)
 
   # Write the spectrogram and audio to disk
-  audio_filename = 'audio-{}.npy'.format(basename)
-  mel_filename = 'mel-{}.npy'.format(basename)
-  linear_filename = 'linear-{}.npy'.format(basename)
+  audio_filename = '{}.npy'.format(basename)
+  mel_filename = '{}.npy'.format(basename)
+  linear_filename = '{}.npy'.format(basename)
   np.save(os.path.join(wav_dir, audio_filename), out.astype(out_dtype), allow_pickle=False)
   np.save(os.path.join(mel_dir, mel_filename), mel_spectrogram.T, allow_pickle=False)
   np.save(os.path.join(linear_dir, linear_filename), linear_spectrogram.T, allow_pickle=False)
 
   # Return a tuple describing this training example
-  return (audio_filename, mel_filename, linear_filename, time_steps, mel_frames, text)
+  #return (audio_filename, mel_filename, linear_filename, time_steps, mel_frames, text)
+  # is simply the name of the file, length of the audio and the specs
+  return (basename, time_steps, mel_frames)
 

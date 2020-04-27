@@ -10,7 +10,7 @@ import numpy as np
 import tensorflow as tf
 from datasets import audio
 from hparams import hparams_debug_string
-from src.preprocessing.TextProcessor import TextProcessor
+from src.preprocessing.text.conversion.SymbolConverter import SymbolConverter
 from src.preprocessing.text.symbols import save_to_file as save_symbols_to_file
 from tacotron.Feeder import Feeder
 from tacotron.models import create_model
@@ -115,7 +115,7 @@ def model_test_mode(args, feeder, hparams, global_step):
 		return model
 
 def train(log_dir, args, hparams):
-	text_processor = TextProcessor()
+	symbol_converter = SymbolConverter()
 	save_dir = os.path.join(log_dir, 'taco_pretrained')
 	plot_dir = os.path.join(log_dir, 'plots')
 	wav_dir = os.path.join(log_dir, 'wavs')
@@ -136,7 +136,8 @@ def train(log_dir, args, hparams):
 	os.makedirs(meta_folder, exist_ok=True)
 
 	checkpoint_path = os.path.join(save_dir, 'tacotron_model.ckpt')
-	input_path = os.path.join(args.base_dir, args.tacotron_input)
+	#input_path = os.path.join(args.base_dir, args.tacotron_input)
+	input_path = args.input_dir
 
 	if hparams.predict_linear:
 		linear_dir = os.path.join(log_dir, 'linear-spectrograms')
@@ -373,7 +374,7 @@ def train(log_dir, args, hparams):
 					plot.plot_spectrogram(mel_prediction, os.path.join(plot_dir, 'step-{}-mel-spectrogram.png'.format(step)),
 						title='{}, {}, step={}, loss={:.5f}'.format(args.model, time_string(), step, loss), target_spectrogram=target,
 						max_len=target_length)
-					original_text = text_processor.sequence_to_text(input_seq)
+					original_text = symbol_converter.sequence_to_text(input_seq)
 					log('Input at step {}: {}'.format(step, original_text))
 
 				if step % args.embedding_interval == 0 or step == args.tacotron_train_steps or step == 1:

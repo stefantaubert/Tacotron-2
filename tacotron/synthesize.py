@@ -3,13 +3,17 @@ import os
 import re
 import time
 from time import sleep
+import numpy as np
 
 import tensorflow as tf
 from hparams import hparams, hparams_debug_string
 from infolog import log
 from tacotron.synthesizer import Synthesizer
 from tqdm import tqdm
-
+from src.preprocessing.Preprocessor import load_meta, get_train_txt
+from src.preprocessing.text.TextProcessor import get_txt_dir
+from src.preprocessing.audio.WavProcessor import get_mel_dir, get_lin_dir, get_wav_dir
+from src.preprocessing.text.conversion.SymbolConverter import SymbolConverter
 
 def generate_fast(model, text):
 	model.synthesize([text], None, None, None, None)
@@ -84,33 +88,39 @@ def run_synthesis(args, checkpoint_path, output_dir, hparams):
 		#Create output path if it doesn't exist
 		os.makedirs(synth_dir, exist_ok=True)
 
-
-	metadata_filename = os.path.join(args.input_dir, 'train.txt')
+	metadata_path = get_train_txt(args.input_dir)
+	metadata = load_meta(metadata_path)
 	log(hparams_debug_string())
 	synth = Synthesizer()
 	synth.load(checkpoint_path, hparams, gta=GTA)
-	with open(metadata_filename, encoding='utf-8') as f:
-		metadata = [line.strip().split('|') for line in f]
-		frame_shift_ms = hparams.hop_size / hparams.sample_rate
-		hours = sum([int(x[4]) for x in metadata]) * frame_shift_ms / (3600)
-		log('Loaded metadata for {} examples ({:.2f} hours)'.format(len(metadata), hours))
+	frame_shift_ms = hparams.hop_size / hparams.sample_rate
+	hours = sum([int(x[2]) for x in metadata]) * frame_shift_ms / (3600)
+	log('Loaded metadata for {} examples ({:.2f} hours)'.format(len(metadata), hours))
 
 	#Set inputs batch wise
 	metadata = [metadata[i: i+hparams.tacotron_synthesis_batch_size] for i in range(0, len(metadata), hparams.tacotron_synthesis_batch_size)]
 
 	log('Starting Synthesis')
-	mel_dir = os.path.join(args.input_dir, 'mels')
-	wav_dir = os.path.join(args.input_dir, 'audio')
+
+	txt_dir = get_txt_dir(args.input_dir)
+	mel_dir = get_mel_dir(args.input_dir)
+	wav_dir = get_wav_dir(args.input_dir)
+	conv = SymbolConverter()
 	with open(os.path.join(synth_dir, 'map.txt'), 'w') as file:
 		for i, meta in enumerate(tqdm(metadata)):
-			texts = [m[5] for m in meta]
-			mel_filenames = [os.path.join(mel_dir, m[1]) for m in meta]
-			wav_filenames = [os.path.join(wav_dir, m[0]) for m in meta]
-			basenames = [os.path.basename(m).replace('.npy', '').replace('mel-', '') for m in mel_filenames]
+			text_paths = [os.path.join(txt_dir, "{}.npy".format(m[0])) for m in meta]
+			text_symbols = [np.load(pth) for pth in text_paths]
+			# trim ~ at the end
+			texts = [conv.sequence_to_text(x)[:-1] for x in text_symbols]
+			#texts = [m[5] for m in meta]
+			mel_filenames = [os.path.join(mel_dir, "{}.npy".format(m[0])) for m in meta]
+			wav_filenames = [os.path.join(wav_dir, "{}.npy".format(m[0])) for m in meta]
+			basenames = [m[0] for m in mel_filenames]
 			mel_output_filenames, speaker_ids = synth.synthesize(texts, basenames, synth_dir, None, mel_filenames)
 
 			for elems in zip(wav_filenames, mel_filenames, mel_output_filenames, speaker_ids, texts):
 				file.write('|'.join([str(x) for x in elems]) + '\n')
+
 	log('synthesized mel spectrograms at {}'.format(synth_dir))
 	return os.path.join(synth_dir, 'map.txt')
 

@@ -1,11 +1,8 @@
 import numpy as np
 
 from src.preprocessing.text.symbols import get_id, get_symbol, is_valid_text_symbol, eos_id
-from src.preprocessing.text.adjustments.TextAdjuster import TextAdjuster
 
-class TextProcessor():
-  def __init__(self):
-    super().__init__()
+class SymbolConverter():
 
   def text_to_sequence(self, text):
     '''Converts a string of text to a sequence of IDs corresponding to the symbols in the text.
@@ -17,10 +14,8 @@ class TextProcessor():
         List of integers corresponding to the symbols in the text
     '''
     sequence = []
-    adjuster = TextAdjuster()
 
-    adjusted_text = adjuster.adjust(text)
-    ids = _get_valid_symbolids(adjusted_text)
+    ids = _get_valid_symbolids(text)
     sequence.extend(ids)
 
     # Append EOS token
@@ -41,7 +36,7 @@ def _get_valid_symbolids(symbols):
   return [get_id(symbol) for symbol in symbols if is_valid_text_symbol(symbol)]
 
 if __name__ == "__main__":
-  proc = TextProcessor()
+  proc = SymbolConverter()
   inp = "hello my name is mr. test"
   outp = proc.text_to_sequence(inp)
 

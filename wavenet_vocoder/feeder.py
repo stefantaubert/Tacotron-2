@@ -168,13 +168,16 @@ class Feeder:
 		meta = self._test_meta[self._test_offset]
 		self._test_offset += 1
 
+		utt_name = meta[0]
+		utt_filename = "{}.npy".format(utt_name)
+
 		if self._hparams.train_with_GTA:
 			mel_file = meta[2]
 		else:
 			mel_file = meta[1]
 		audio_file = meta[0]
 
-		input_data = np.load(os.path.join(self._base_dir, audio_file))
+		input_data = np.load(os.path.join(self._base_dir, utt_filename))
 
 		if self.local_condition:
 			local_condition_features = np.load(os.path.join(self._base_dir, mel_file))

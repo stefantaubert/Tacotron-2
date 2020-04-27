@@ -8,7 +8,9 @@ import tensorflow as tf
 from infolog import log
 from sklearn.model_selection import train_test_split
 #from tacotron.utils.text import text_to_sequence
-from src.preprocessing.TextProcessor import TextProcessor
+from src.preprocessing.text.TextProcessor import get_txt_dir
+from src.preprocessing.audio.WavProcessor import get_mel_dir, get_lin_dir, get_wav_dir
+from src.preprocessing.Preprocessor import load_meta, get_train_txt
 
 _batches_per_group = 64
 
@@ -17,23 +19,29 @@ class Feeder:
 		Feeds batches of data into queue on a background thread.
 	"""
 
-	def __init__(self, coordinator, metadata_filename, hparams):
+	def __init__(self, coordinator, caching_dir, hparams):
 		super(Feeder, self).__init__()
 		self._coord = coordinator
 		self._hparams = hparams
 		self._cleaner_names = [x.strip() for x in hparams.cleaners.split(',')]
-		self._text_processor = TextProcessor()
 		self._train_offset = 0
 		self._test_offset = 0
 
 		# Load metadata
-		self._mel_dir = os.path.join(os.path.dirname(metadata_filename), 'mels')
-		self._linear_dir = os.path.join(os.path.dirname(metadata_filename), 'linear')
-		with open(metadata_filename, encoding='utf-8') as f:
-			self._metadata = [line.strip().split('|') for line in f]
-			frame_shift_ms = hparams.hop_size / hparams.sample_rate
-			hours = sum([int(x[4]) for x in self._metadata]) * frame_shift_ms / (3600)
-			log('Loaded metadata for {} examples ({:.2f} hours)'.format(len(self._metadata), hours))
+
+		self._txt_dir = get_txt_dir(caching_dir)
+		self._mel_dir = get_mel_dir(caching_dir)
+		self._linear_dir = get_lin_dir(caching_dir)
+		metadata_path = get_train_txt(caching_dir)
+		self._metadata = load_meta(metadata_path)
+
+		#self._mel_dir = os.path.join(os.path.dirname(metadata_filename), 'mels')
+		#self._linear_dir = os.path.join(os.path.dirname(metadata_filename), 'linear')
+		# with open(metadata_filename, encoding='utf-8') as f:
+		# 	self._metadata = [line.strip().split('|') for line in f]
+		frame_shift_ms = hparams.hop_size / hparams.sample_rate
+		hours = sum([int(x[2]) for x in self._metadata]) * frame_shift_ms / (3600)
+		log('Loaded metadata for {} examples ({:.2f} hours)'.format(len(self._metadata), hours))
 
 		#Train test split
 		if hparams.tacotron_test_size is None:
@@ -124,14 +132,16 @@ class Feeder:
 		meta = self._test_meta[self._test_offset]
 		self._test_offset += 1
 
-		text = meta[5]
+		utt_name = meta[0]
+		utt_filename = "{}.npy".format(utt_name)
 
-		input_data = self._text_processor.text_to_sequence(text)
+		#input_data = self._text_processor.text_to_sequence(text)
 		#- input_data = np.asarray(text_to_sequence(text, self._cleaner_names), dtype=np.int32)
-		mel_target = np.load(os.path.join(self._mel_dir, meta[1]))
+		input_data = np.load(os.path.join(self._txt_dir, utt_filename))
+		mel_target = np.load(os.path.join(self._mel_dir, utt_filename))
 		#Create parallel sequences containing zeros to represent a non finished sequence
 		token_target = np.asarray([0.] * (len(mel_target) - 1))
-		linear_target = np.load(os.path.join(self._linear_dir, meta[2]))
+		linear_target = np.load(os.path.join(self._linear_dir, utt_filename))
 		return (input_data, mel_target, token_target, linear_target, len(mel_target))
 
 	def make_test_batches(self):
@@ -189,13 +199,14 @@ class Feeder:
 		meta = self._train_meta[self._train_offset]
 		self._train_offset += 1
 
-		text = meta[5]
-		input_data = self._text_processor.text_to_sequence(text)
-		#- input_data = np.asarray(text_to_sequence(text, self._cleaner_names), dtype=np.int32)
-		mel_target = np.load(os.path.join(self._mel_dir, meta[1]))
+		utt_name = meta[0]
+		utt_filename = "{}.npy".format(utt_name)
+
+		input_data = np.load(os.path.join(self._txt_dir, utt_filename))
+		mel_target = np.load(os.path.join(self._mel_dir, utt_filename))
 		#Create parallel sequences containing zeros to represent a non finished sequence
 		token_target = np.asarray([0.] * (len(mel_target) - 1))
-		linear_target = np.load(os.path.join(self._linear_dir, meta[2]))
+		linear_target = np.load(os.path.join(self._linear_dir, utt_filename))
 		return (input_data, mel_target, token_target, linear_target, len(mel_target))
 
 	def _prepare_batch(self, batches, outputs_per_step):

@@ -1,18 +1,8 @@
 import argparse
-import os
 from multiprocessing import cpu_count
 
 from hparams import hparams
-from src.preprocessing.LJSpeechDatasetParser import LJSpeechDatasetParser
-from src.preprocessing.WavProcessor import WavProcessor
-
-
-def run(args, hparams):
-  parser = LJSpeechDatasetParser(args.dataset_path)
-  wav_processor = WavProcessor(hparams, args.cache_path)
-  wav_processor.process(parser, args.n_jobs)
-  wav_processor.save_results()
-  wav_processor.show_stats()
+from src.preprocessing.Preprocessor import Preprocessor
 
 if __name__ == "__main__":
   print('initializing preprocessing..')
@@ -25,4 +15,5 @@ if __name__ == "__main__":
   args = parser.parse_args()
   modified_hp = hparams.parse(args.hparams)
 
-  run(args, modified_hp)
+  processor = Preprocessor(args.n_jobs, args.cache_path, modified_hp)
+  processor.run()
