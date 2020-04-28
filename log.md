@@ -1,3 +1,5 @@
+cuda driver: 440.64.00
+
 ## install cuda 10.0 + cudnn 7.6.5 ([ref](https://stackoverflow.com/questions/55224016/importerror-libcublas-so-10-0-cannot-open-shared-object-file-no-such-file-or))
 ```
 sudo dpkg -i cuda-repo-ubuntu1804_10.0.130-1_amd64.deb

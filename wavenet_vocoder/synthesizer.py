@@ -12,8 +12,8 @@ from . import util
 
 
 class Synthesizer:
-	def load(self, checkpoint_path, hparams, model_name='WaveNet'):
-		log('Constructing model: {}'.format(model_name))
+	def load(self, checkpoint_path, hparams):
+		log('Constructing model: {}'.format('WaveNet'))
 		self._hparams = hparams
 		local_cond, global_cond = self._check_conditions()
 
@@ -25,7 +25,7 @@ class Synthesizer:
 		self.synth_debug = hparams.wavenet_synth_debug
 
 		with tf.variable_scope('WaveNet_model') as scope:
-			self.model = create_model(model_name, hparams)
+			self.model = create_model(hparams)
 			self.model.initialize(y=None, c=self.local_conditions, g=self.global_conditions,
 				input_lengths=self.input_lengths, synthesis_length=self.synthesis_length, test_inputs=self.targets)
 

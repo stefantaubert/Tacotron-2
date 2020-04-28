@@ -20,7 +20,7 @@ class Feeder:
 	"""
 		Feeds batches of data into queue in a background thread.
 	"""
-	def __init__(self, coordinator, metadata_filename, base_dir, hparams):
+	def __init__(self, coordinator, metadata_filename, hparams):
 		super(Feeder, self).__init__()
 
 		self._coord = coordinator
@@ -34,7 +34,7 @@ class Feeder:
 			self._spec_pad = 0.
 
 		#Base directory of the project (to map files from different locations)
-		self._base_dir = base_dir
+		#self._base_dir = base_dir
 
 		#Load metadata
 		self._data_dir = os.path.dirname(metadata_filename)
@@ -168,19 +168,16 @@ class Feeder:
 		meta = self._test_meta[self._test_offset]
 		self._test_offset += 1
 
-		utt_name = meta[0]
-		utt_filename = "{}.npy".format(utt_name)
-
 		if self._hparams.train_with_GTA:
 			mel_file = meta[2]
 		else:
 			mel_file = meta[1]
 		audio_file = meta[0]
 
-		input_data = np.load(os.path.join(self._base_dir, utt_filename))
+		input_data = np.load(audio_file)
 
 		if self.local_condition:
-			local_condition_features = np.load(os.path.join(self._base_dir, mel_file))
+			local_condition_features = np.load(mel_file)
 		else:
 			local_condition_features = None
 
@@ -249,10 +246,10 @@ class Feeder:
 			mel_file = meta[1]
 		audio_file = meta[0]
 
-		input_data = np.load(os.path.join(self._base_dir, audio_file))
+		input_data = np.load(audio_file)
 
 		if self.local_condition:
-			local_condition_features = np.load(os.path.join(self._base_dir, mel_file))
+			local_condition_features = np.load(mel_file)
 		else:
 			local_condition_features = None
 

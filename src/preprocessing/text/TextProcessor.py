@@ -13,7 +13,7 @@ from src.preprocessing.text.symbols import (eos_id, get_id, get_symbol, is_valid
 
 def get_txt_dir(caching_dir: str) -> str:
   ''' The directory to write the preprocessed text into. '''
-  return os.path.join(caching_dir, 'text')
+  return os.path.join(caching_dir, 'preprocessing/text')
 
 class TextProcessor():
   def __init__(self, hp: hparams, caching_dir: str):

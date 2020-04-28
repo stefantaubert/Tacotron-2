@@ -7,6 +7,7 @@ from hparams import hparams, hparams_debug_string
 from infolog import log
 from tqdm import tqdm
 from wavenet_vocoder.synthesizer import Synthesizer
+from tacotron.synthesize import get_evals_dir
 
 
 def run_synthesis(args, checkpoint_path, output_dir, hparams):
@@ -18,25 +19,27 @@ def run_synthesis(args, checkpoint_path, output_dir, hparams):
 	synth = Synthesizer()
 	synth.load(checkpoint_path, hparams)
 
-	if args.model == 'Tacotron-2':
-		#If running all Tacotron-2, synthesize audio from evaluated mels
-		metadata_filename = os.path.join(args.mels_dir, 'map.txt')
-		with open(metadata_filename, encoding='utf-8') as f:
-			metadata = np.array([line.strip().split('|') for line in f])
+	#if args.model == 'Tacotron-2':
+	#If running all Tacotron-2, synthesize audio from evaluated mels
+	evals_dir = get_evals_dir(args.caching_dir)
+	metadata_filename = os.path.join(evals_dir, 'map.txt')
+	
+	with open(metadata_filename, encoding='utf-8') as f:
+		metadata = np.array([line.strip().split('|') for line in f])
 
-		speaker_ids = metadata[:, 2]
-		mel_files = metadata[:, 1]
-		texts = metadata[:, 0]
+	speaker_ids = metadata[:, 2]
+	mel_files = metadata[:, 1]
+	texts = metadata[:, 0]
 
-		speaker_ids = None if (speaker_ids == '<no_g>').all() else speaker_ids
-	else:
-		#else Get all npy files in input_dir (supposing they are mels)
-		mel_files  = sorted([os.path.join(args.mels_dir, f) for f in os.listdir(args.mels_dir) if f.split('.')[-1] == 'npy'])
-		speaker_ids = None if args.speaker_id is None else args.speaker_id.replace(' ', '').split(',')
-		if speaker_ids is not None:
-			assert len(speaker_ids) == len(mel_files)
+	speaker_ids = None if (speaker_ids == '<no_g>').all() else speaker_ids
+	# else:
+	# 	#else Get all npy files in input_dir (supposing they are mels)
+	# 	mel_files  = sorted([os.path.join(args.mels_dir, f) for f in os.listdir(args.mels_dir) if f.split('.')[-1] == 'npy'])
+	# 	speaker_ids = None if args.speaker_id is None else args.speaker_id.replace(' ', '').split(',')
+	# 	if speaker_ids is not None:
+	# 		assert len(speaker_ids) == len(mel_files)
 
-		texts = None
+	#	texts = None
 
 	log('Starting synthesis! (this will take a while..)')
 	os.makedirs(log_dir, exist_ok=True)
@@ -64,10 +67,11 @@ def run_synthesis(args, checkpoint_path, output_dir, hparams):
 
 	log('synthesized audio waveforms at {}'.format(wav_dir))
 
-
+def get_output_dir(caching_dir: str):
+  return os.path.join(caching_dir, 'synthesis_wavenet')
 
 def wavenet_synthesize(args, hparams, checkpoint):
-	output_dir = 'wavenet_' + args.output_dir
+	output_dir = get_output_dir(args.caching_dir)
 
 	try:
 		checkpoint_path = tf.train.get_checkpoint_state(checkpoint).model_checkpoint_path

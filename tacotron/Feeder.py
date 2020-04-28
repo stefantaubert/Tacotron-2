@@ -63,6 +63,7 @@ class Feeder:
 		self._test_meta = list(np.array(self._metadata)[test_indices])
 
 		self.test_steps = len(self._test_meta) // hparams.tacotron_batch_size
+		log('test_steps = {}'.format(self.test_steps))
 
 		if hparams.tacotron_test_size is None:
 			assert hparams.tacotron_test_batches == self.test_steps
@@ -106,6 +107,7 @@ class Feeder:
 
 			# Create eval queue for buffering eval data
 			eval_queue = tf.FIFOQueue(1, [tf.int32, tf.int32, tf.float32, tf.float32, tf.float32, tf.int32, tf.int32], name='eval_queue')
+			#todo here is a bug with session
 			self._eval_enqueue_op = eval_queue.enqueue(self._placeholders)
 			self.eval_inputs, self.eval_input_lengths, self.eval_mel_targets, self.eval_token_targets, \
 				self.eval_linear_targets, self.eval_targets_lengths, self.eval_split_infos = eval_queue.dequeue()

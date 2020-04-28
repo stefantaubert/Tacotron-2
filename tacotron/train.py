@@ -13,15 +13,13 @@ from hparams import hparams_debug_string
 from src.preprocessing.text.conversion.SymbolConverter import SymbolConverter
 from src.preprocessing.text.symbols import save_to_file as save_symbols_to_file
 from tacotron.Feeder import Feeder
-from tacotron.models import create_model
 from tacotron.utils.ValueWindow import ValueWindow
 from tacotron.utils import plot
-#from tacotron.utils.text import sequence_to_text
-#from tacotron.utils.symbols import symbols
+from tacotron.models.tacotron import Tacotron
 from tqdm import tqdm
 
-log = infolog.log
 
+log = infolog.log
 
 def time_string():
 	return datetime.now().strftime('%Y-%m-%d %H:%M')
@@ -68,22 +66,21 @@ def add_train_stats(model, hparams):
 
 def add_eval_stats(summary_writer, step, linear_loss, before_loss, after_loss, stop_token_loss, loss):
 	values = [
-	tf.Summary.Value(tag='Tacotron_eval_model/eval_stats/eval_before_loss', simple_value=before_loss),
-	tf.Summary.Value(tag='Tacotron_eval_model/eval_stats/eval_after_loss', simple_value=after_loss),
-	tf.Summary.Value(tag='Tacotron_eval_model/eval_stats/stop_token_loss', simple_value=stop_token_loss),
-	tf.Summary.Value(tag='Tacotron_eval_model/eval_stats/eval_loss', simple_value=loss),
+		tf.Summary.Value(tag='Tacotron_eval_model/eval_stats/eval_before_loss', simple_value=before_loss),
+		tf.Summary.Value(tag='Tacotron_eval_model/eval_stats/eval_after_loss', simple_value=after_loss),
+		tf.Summary.Value(tag='Tacotron_eval_model/eval_stats/stop_token_loss', simple_value=stop_token_loss),
+		tf.Summary.Value(tag='Tacotron_eval_model/eval_stats/eval_loss', simple_value=loss),
 	]
+
 	if linear_loss is not None:
 		values.append(tf.Summary.Value(tag='Tacotron_eval_model/eval_stats/eval_linear_loss', simple_value=linear_loss))
+	
 	test_summary = tf.Summary(value=values)
 	summary_writer.add_summary(test_summary, step)
 
 def model_train_mode(args, feeder, hparams, global_step):
 	with tf.variable_scope('Tacotron_model', reuse=tf.AUTO_REUSE) as scope:
-		model_name = None
-		if args.model == 'Tacotron-2':
-			model_name = 'Tacotron'
-		model = create_model(model_name or args.model, hparams)
+		model = Tacotron(hparams)
 		if hparams.predict_linear:
 			model.initialize(feeder.inputs, feeder.input_lengths, feeder.mel_targets, feeder.token_targets, linear_targets=feeder.linear_targets,
 				targets_lengths=feeder.targets_lengths, global_step=global_step,
@@ -99,10 +96,7 @@ def model_train_mode(args, feeder, hparams, global_step):
 
 def model_test_mode(args, feeder, hparams, global_step):
 	with tf.variable_scope('Tacotron_model', reuse=tf.AUTO_REUSE) as scope:
-		model_name = None
-		if args.model == 'Tacotron-2':
-			model_name = 'Tacotron'
-		model = create_model(model_name or args.model, hparams)
+		model = Tacotron(hparams)
 		if hparams.predict_linear:
 			model.initialize(feeder.eval_inputs, feeder.eval_input_lengths, feeder.eval_mel_targets, feeder.eval_token_targets,
 				linear_targets=feeder.eval_linear_targets, targets_lengths=feeder.eval_targets_lengths, global_step=global_step,
@@ -114,9 +108,12 @@ def model_test_mode(args, feeder, hparams, global_step):
 		model.add_loss()
 		return model
 
+def get_save_dir(log_dir):
+  return os.path.join(log_dir, 'taco_pretrained')
+
 def train(log_dir, args, hparams):
 	symbol_converter = SymbolConverter()
-	save_dir = os.path.join(log_dir, 'taco_pretrained')
+	save_dir = get_save_dir(log_dir)
 	plot_dir = os.path.join(log_dir, 'plots')
 	wav_dir = os.path.join(log_dir, 'wavs')
 	mel_dir = os.path.join(log_dir, 'mel-spectrograms')
@@ -136,16 +133,15 @@ def train(log_dir, args, hparams):
 	os.makedirs(meta_folder, exist_ok=True)
 
 	checkpoint_path = os.path.join(save_dir, 'tacotron_model.ckpt')
-	#input_path = os.path.join(args.base_dir, args.tacotron_input)
-	input_path = args.input_dir
+	caching_dir = args.caching_dir
 
 	if hparams.predict_linear:
 		linear_dir = os.path.join(log_dir, 'linear-spectrograms')
 		os.makedirs(linear_dir, exist_ok=True)
 
 	log('Checkpoint path: {}'.format(checkpoint_path))
-	log('Loading training data from: {}'.format(input_path))
-	log('Using model: {}'.format(args.model))
+	log('Loading training data from: {}'.format(caching_dir))
+	log('Using model: {}'.format("tacotron"))
 	log(hparams_debug_string())
 
 	#Start by setting a seed for repeatability
@@ -154,7 +150,7 @@ def train(log_dir, args, hparams):
 	#Set up data feeder
 	coord = tf.train.Coordinator()
 	with tf.variable_scope('datafeeder') as scope:
-		feeder = Feeder(coord, input_path, hparams)
+		feeder = Feeder(coord, caching_dir, hparams)
 
 	#Set up model:
 	global_step = tf.Variable(0, name='global_step', trainable=False)
@@ -238,78 +234,104 @@ def train(log_dir, args, hparams):
 				if step % args.eval_interval == 0:
 					#Run eval and save eval stats
 					log('\nRunning evaluation at step {}'.format(step))
+					if feeder.test_steps == 0:
+						log('zero test steps, skipping...')
+					else:
+						eval_losses = []
+						before_losses = []
+						after_losses = []
+						stop_token_losses = []
+						linear_losses = []
+						linear_loss = None
 
-					eval_losses = []
-					before_losses = []
-					after_losses = []
-					stop_token_losses = []
-					linear_losses = []
-					linear_loss = None
+						if hparams.predict_linear:
+							for i in tqdm(range(feeder.test_steps)):
+								eloss, before_loss, after_loss, stop_token_loss, linear_loss, mel_p, mel_t, t_len, align, lin_p, lin_t = sess.run([
+									eval_model.tower_loss[0], eval_model.tower_before_loss[0], eval_model.tower_after_loss[0],
+									eval_model.tower_stop_token_loss[0], eval_model.tower_linear_loss[0], eval_model.tower_mel_outputs[0][0],
+									eval_model.tower_mel_targets[0][0], eval_model.tower_targets_lengths[0][0],
+									eval_model.tower_alignments[0][0], eval_model.tower_linear_outputs[0][0],
+									eval_model.tower_linear_targets[0][0],
+									])
+								eval_losses.append(eloss)
+								before_losses.append(before_loss)
+								after_losses.append(after_loss)
+								stop_token_losses.append(stop_token_loss)
+								linear_losses.append(linear_loss)
+						
+							if (len(linear_losses) != 0):
+								linear_loss = sum(linear_losses) / len(linear_losses)
+							else:
+								linear_loss = 0
+								log('len(linear_losses) was 0')
 
-					if hparams.predict_linear:
-						for i in tqdm(range(feeder.test_steps)):
-							eloss, before_loss, after_loss, stop_token_loss, linear_loss, mel_p, mel_t, t_len, align, lin_p, lin_t = sess.run([
-								eval_model.tower_loss[0], eval_model.tower_before_loss[0], eval_model.tower_after_loss[0],
-								eval_model.tower_stop_token_loss[0], eval_model.tower_linear_loss[0], eval_model.tower_mel_outputs[0][0],
-								eval_model.tower_mel_targets[0][0], eval_model.tower_targets_lengths[0][0],
-								eval_model.tower_alignments[0][0], eval_model.tower_linear_outputs[0][0],
-								eval_model.tower_linear_targets[0][0],
-								])
-							eval_losses.append(eloss)
-							before_losses.append(before_loss)
-							after_losses.append(after_loss)
-							stop_token_losses.append(stop_token_loss)
-							linear_losses.append(linear_loss)
-						linear_loss = sum(linear_losses) / len(linear_losses)
+							if hparams.GL_on_GPU:
+								wav = sess.run(GLGPU_lin_outputs, feed_dict={GLGPU_lin_inputs: lin_p})
+								wav = audio.inv_preemphasis(wav, hparams.preemphasis, hparams.preemphasize)
+							else:
+								wav = audio.inv_linear_spectrogram(lin_p.T, hparams)
+							audio.save_wav(wav, os.path.join(eval_wav_dir, 'step-{}-eval-wave-from-linear.wav'.format(step)), sr=hparams.sample_rate)
 
+						else:
+							for i in tqdm(range(feeder.test_steps)):
+								eloss, before_loss, after_loss, stop_token_loss, mel_p, mel_t, t_len, align = sess.run([
+									eval_model.tower_loss[0], eval_model.tower_before_loss[0], eval_model.tower_after_loss[0],
+									eval_model.tower_stop_token_loss[0], eval_model.tower_mel_outputs[0][0], eval_model.tower_mel_targets[0][0],
+									eval_model.tower_targets_lengths[0][0], eval_model.tower_alignments[0][0]
+									])
+								eval_losses.append(eloss)
+								before_losses.append(before_loss)
+								after_losses.append(after_loss)
+								stop_token_losses.append(stop_token_loss)
+
+						if (len(eval_losses) != 0):
+							eval_loss = sum(eval_losses) / len(eval_losses)
+						else:
+							eval_loss = 0
+							log('len(eval_losses) was 0')
+
+						if (len(before_losses) != 0):
+							before_loss = sum(before_losses) / len(before_losses)
+						else:
+							before_loss = 0
+							log('len(before_losses) was 0')
+
+						if (len(after_losses) != 0):
+							after_loss = sum(after_losses) / len(after_losses)
+						else:
+							after_loss = 0
+							log('len(after_losses) was 0')
+
+						if (len(stop_token_losses) != 0):
+							stop_token_loss = sum(stop_token_losses) / len(stop_token_losses)
+						else:
+							stop_token_loss = 0
+							log('len(stop_token_losses) was 0')
+
+						log('Saving eval log to {}..'.format(eval_dir))
+						#Save some log to monitor model improvement on same unseen sequence
 						if hparams.GL_on_GPU:
-							wav = sess.run(GLGPU_lin_outputs, feed_dict={GLGPU_lin_inputs: lin_p})
+							wav = sess.run(GLGPU_mel_outputs, feed_dict={GLGPU_mel_inputs: mel_p})
 							wav = audio.inv_preemphasis(wav, hparams.preemphasis, hparams.preemphasize)
 						else:
-							wav = audio.inv_linear_spectrogram(lin_p.T, hparams)
-						audio.save_wav(wav, os.path.join(eval_wav_dir, 'step-{}-eval-wave-from-linear.wav'.format(step)), sr=hparams.sample_rate)
+							wav = audio.inv_mel_spectrogram(mel_p.T, hparams)
+						audio.save_wav(wav, os.path.join(eval_wav_dir, 'step-{}-eval-wave-from-mel.wav'.format(step)), sr=hparams.sample_rate)
 
-					else:
-						for i in tqdm(range(feeder.test_steps)):
-							eloss, before_loss, after_loss, stop_token_loss, mel_p, mel_t, t_len, align = sess.run([
-								eval_model.tower_loss[0], eval_model.tower_before_loss[0], eval_model.tower_after_loss[0],
-								eval_model.tower_stop_token_loss[0], eval_model.tower_mel_outputs[0][0], eval_model.tower_mel_targets[0][0],
-								eval_model.tower_targets_lengths[0][0], eval_model.tower_alignments[0][0]
-								])
-							eval_losses.append(eloss)
-							before_losses.append(before_loss)
-							after_losses.append(after_loss)
-							stop_token_losses.append(stop_token_loss)
+						plot.plot_alignment(align, os.path.join(eval_plot_dir, 'step-{}-eval-align.png'.format(step)),
+							title='{}, {}, step={}, loss={:.5f}'.format("tacotron", time_string(), step, eval_loss),
+							max_len=t_len // hparams.outputs_per_step)
+						plot.plot_spectrogram(mel_p, os.path.join(eval_plot_dir, 'step-{}-eval-mel-spectrogram.png'.format(step)),
+							title='{}, {}, step={}, loss={:.5f}'.format("tacotron", time_string(), step, eval_loss), target_spectrogram=mel_t,
+							max_len=t_len)
 
-					eval_loss = sum(eval_losses) / len(eval_losses)
-					before_loss = sum(before_losses) / len(before_losses)
-					after_loss = sum(after_losses) / len(after_losses)
-					stop_token_loss = sum(stop_token_losses) / len(stop_token_losses)
+						if hparams.predict_linear:
+							plot.plot_spectrogram(lin_p, os.path.join(eval_plot_dir, 'step-{}-eval-linear-spectrogram.png'.format(step)),
+								title='{}, {}, step={}, loss={:.5f}'.format("tacotron", time_string(), step, eval_loss), target_spectrogram=lin_t,
+								max_len=t_len, auto_aspect=True)
 
-					log('Saving eval log to {}..'.format(eval_dir))
-					#Save some log to monitor model improvement on same unseen sequence
-					if hparams.GL_on_GPU:
-						wav = sess.run(GLGPU_mel_outputs, feed_dict={GLGPU_mel_inputs: mel_p})
-						wav = audio.inv_preemphasis(wav, hparams.preemphasis, hparams.preemphasize)
-					else:
-						wav = audio.inv_mel_spectrogram(mel_p.T, hparams)
-					audio.save_wav(wav, os.path.join(eval_wav_dir, 'step-{}-eval-wave-from-mel.wav'.format(step)), sr=hparams.sample_rate)
-
-					plot.plot_alignment(align, os.path.join(eval_plot_dir, 'step-{}-eval-align.png'.format(step)),
-						title='{}, {}, step={}, loss={:.5f}'.format(args.model, time_string(), step, eval_loss),
-						max_len=t_len // hparams.outputs_per_step)
-					plot.plot_spectrogram(mel_p, os.path.join(eval_plot_dir, 'step-{}-eval-mel-spectrogram.png'.format(step)),
-						title='{}, {}, step={}, loss={:.5f}'.format(args.model, time_string(), step, eval_loss), target_spectrogram=mel_t,
-						max_len=t_len)
-
-					if hparams.predict_linear:
-						plot.plot_spectrogram(lin_p, os.path.join(eval_plot_dir, 'step-{}-eval-linear-spectrogram.png'.format(step)),
-							title='{}, {}, step={}, loss={:.5f}'.format(args.model, time_string(), step, eval_loss), target_spectrogram=lin_t,
-							max_len=t_len, auto_aspect=True)
-
-					log('Eval loss for global step {}: {:.3f}'.format(step, eval_loss))
-					log('Writing eval summary!')
-					add_eval_stats(summary_writer, step, linear_loss, before_loss, after_loss, stop_token_loss, eval_loss)
+						log('Eval loss for global step {}: {:.3f}'.format(step, eval_loss))
+						log('Writing eval summary!')
+						add_eval_stats(summary_writer, step, linear_loss, before_loss, after_loss, stop_token_loss, eval_loss)
 
 
 				if step % args.checkpoint_interval == 0 or step == args.tacotron_train_steps or step == 300:
@@ -342,7 +364,7 @@ def train(log_dir, args, hparams):
 
 						#Save real and predicted linear-spectrogram plot to disk (control purposes)
 						plot.plot_spectrogram(linear_prediction, os.path.join(plot_dir, 'step-{}-linear-spectrogram.png'.format(step)),
-							title='{}, {}, step={}, loss={:.5f}'.format(args.model, time_string(), step, loss), target_spectrogram=linear_target,
+							title='{}, {}, step={}, loss={:.5f}'.format("tacotron", time_string(), step, loss), target_spectrogram=linear_target,
 							max_len=target_length, auto_aspect=True)
 
 					else:
@@ -368,11 +390,11 @@ def train(log_dir, args, hparams):
 
 					#save alignment plot to disk (control purposes)
 					plot.plot_alignment(alignment, os.path.join(plot_dir, 'step-{}-align.png'.format(step)),
-						title='{}, {}, step={}, loss={:.5f}'.format(args.model, time_string(), step, loss),
+						title='{}, {}, step={}, loss={:.5f}'.format("tacotron", time_string(), step, loss),
 						max_len=target_length // hparams.outputs_per_step)
 					#save real and predicted mel-spectrogram plot to disk (control purposes)
 					plot.plot_spectrogram(mel_prediction, os.path.join(plot_dir, 'step-{}-mel-spectrogram.png'.format(step)),
-						title='{}, {}, step={}, loss={:.5f}'.format(args.model, time_string(), step, loss), target_spectrogram=target,
+						title='{}, {}, step={}, loss={:.5f}'.format("tacotron", time_string(), step, loss), target_spectrogram=target,
 						max_len=target_length)
 					original_text = symbol_converter.sequence_to_text(input_seq)
 					log('Input at step {}: {}'.format(step, original_text))
@@ -393,6 +415,3 @@ def train(log_dir, args, hparams):
 			log('Exiting due to exception: {}'.format(e), slack=True)
 			traceback.print_exc()
 			coord.request_stop(e)
-
-def tacotron_train(args, log_dir, hparams):
-	return train(log_dir, args, hparams)

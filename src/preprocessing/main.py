@@ -15,5 +15,5 @@ if __name__ == "__main__":
   args = parser.parse_args()
   modified_hp = hparams.parse(args.hparams)
 
-  processor = Preprocessor(args.n_jobs, args.cache_path, modified_hp)
+  processor = Preprocessor(args.n_jobs, args.cache_path, args.dataset_path, modified_hp)
   processor.run()

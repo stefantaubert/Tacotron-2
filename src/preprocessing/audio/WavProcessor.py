@@ -13,15 +13,15 @@ from src.preprocessing.audio.utterance_processor import process_utterance
 
 def get_wav_dir(caching_dir: str) -> str:
   ''' The directory to write the preprocessed wav into. '''
-  return os.path.join(caching_dir, 'audio')
+  return os.path.join(caching_dir, 'preprocessing/audio')
 
 def get_mel_dir(caching_dir: str) -> str:
   ''' The directory to write the mel spectograms into. '''
-  return os.path.join(caching_dir, 'mels')
+  return os.path.join(caching_dir, 'preprocessing/mels')
 
 def get_lin_dir(caching_dir: str) -> str:
   ''' The directory to write the linear spectrograms into. '''
-  return os.path.join(caching_dir, 'linear')
+  return os.path.join(caching_dir, 'preprocessing/linear')
 
 class WavProcessor():
   def __init__(self, hp: hparams, caching_dir: str):
@@ -51,7 +51,6 @@ class WavProcessor():
     hours = timesteps_sum / self.hp.sample_rate / 3600
 
     print('Written {} utterances, {} mel frames, {} audio timesteps, ({:.2f} hours)'.format(len(self.processing_result), mel_frames_sum, timesteps_sum, hours))
-    #print('Max input length (text chars): {}'.format(max(len(m[5]) for m in self.processing_result)))
     print('Max audio timesteps length: {}'.format(timesteps_max))
     print('Max mel frames length: {}'.format(mel_frames_max))
 

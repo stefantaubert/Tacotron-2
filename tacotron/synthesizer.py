@@ -9,7 +9,7 @@ import tensorflow as tf
 from datasets import audio
 from infolog import log
 from librosa import effects
-from tacotron.models import create_model
+from tacotron.models.tacotron import Tacotron
 from tacotron.utils import plot
 #from tacotron.utils.text import text_to_sequence
 from src.preprocessing.text.conversion.SymbolConverter import SymbolConverter
@@ -19,15 +19,15 @@ class Synthesizer:
 	def __init__(self):
 		self._symbol_converter = SymbolConverter()
 
-	def load(self, checkpoint_path, hparams, gta=False, model_name='Tacotron'):
-		log('Constructing model: %s' % model_name)
+	def load(self, checkpoint_path, hparams, gta=False):
+		log('Constructing model: Tacotron')
 		#Force the batch size to be known in order to use attention masking in batch synthesis
 		inputs = tf.placeholder(tf.int32, (None, None), name='inputs')
 		input_lengths = tf.placeholder(tf.int32, (None), name='input_lengths')
 		targets = tf.placeholder(tf.float32, (None, None, hparams.num_mels), name='mel_targets')
 		split_infos = tf.placeholder(tf.int32, shape=(hparams.tacotron_num_gpus, None), name='split_infos')
 		with tf.variable_scope('Tacotron_model', reuse=tf.AUTO_REUSE) as scope:
-			self.model = create_model(model_name, hparams)
+			self.model = Tacotron(hparams)
 			if gta:
 				self.model.initialize(inputs, input_lengths, targets, gta=gta, split_infos=split_infos)
 			else:
@@ -76,7 +76,7 @@ class Synthesizer:
 
 	def synthesize(self, texts, basenames, out_dir, log_dir, mel_filenames):
 		hparams = self._hparams
-		cleaner_names = [x.strip() for x in hparams.cleaners.split(',')]
+		#cleaner_names = [x.strip() for x in hparams.cleaners.split(',')]
 		#[-max, max] or [0,max]
 		T2_output_range = (-hparams.max_abs_value, hparams.max_abs_value) if hparams.symmetric_mels else (0, hparams.max_abs_value)
 

@@ -246,7 +246,7 @@ hparams = tf.contrib.training.HParams(
 	#Tacotron Batch synthesis supports ~16x the training batch size (no gradients during testing). 
 	#Training Tacotron with unmasked paddings makes it aware of them, which makes synthesis times different from training. We thus recommend masking the encoder.
 	tacotron_synthesis_batch_size = 1, #DO NOT MAKE THIS BIGGER THAN 1 IF YOU DIDN'T TRAIN TACOTRON WITH "mask_encoder=True"!!
-	tacotron_test_size = 0.5, #% of data to keep as test data, if None, tacotron_test_batches must be not None. (5% is enough to have a good idea about overfit)
+	tacotron_test_size = 0.05, #% of data to keep as test data, if None, tacotron_test_batches must be not None. (5% is enough to have a good idea about overfit)
 	tacotron_test_batches = None, #number of test batches.
 
 	#Learning rate schedule
@@ -342,12 +342,28 @@ hparams = tf.contrib.training.HParams(
 	sentences = [
 	# From July 8, 2017 New York Times:
 	'Scientists at the CERN laboratory say they have discovered a new particle.',
+	'There\'s a way to measure the acute emotional intelligence that has never gone out of style.',
+	'President Trump met with other leaders at the Group of 20 conference.',
+	'The Senate\'s bill to repeal and replace the Affordable Care Act is now imperiled.',
+	# From Google's Tacotron example page:
+	'Generative adversarial network or variational auto-encoder.',
+	'Basilar membrane and otolaryngology are not auto-correlations.',
+	'He has read the whole thing.',
+	'He reads books.',
+	'He thought it was time to present the present.',
+	'Thisss isrealy awhsome.',
+	'The big brown fox jumps over the lazy dog.',
+	'Did the big brown fox jump over the lazy dog?',
+	"Peter Piper picked a peck of pickled peppers. How many pickled peppers did Peter Piper pick?",
+	"She sells sea-shells on the sea-shore. The shells she sells are sea-shells I'm sure.",
+	"Tajima Airport serves Toyooka.",
 	#From The web (random long utterance)
 	# 'On offering to help the blind man, the man who then stole his car, had not, at that precise moment, had any evil intention, quite the contrary, \
 	# what he did was nothing more than obey those feelings of generosity and altruism which, as everyone knows, \
 	# are the two best traits of human nature and to be found in much more hardened criminals than this one, a simple car-thief without any hope of advancing in his profession, \
 	# exploited by the real owners of this enterprise, for it is they who take advantage of the needs of the poor.',
 	# A final Thank you note!
+	'Thank you so much for your support!',
 	],
 
 	#Wavenet Debug

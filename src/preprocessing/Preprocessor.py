@@ -7,7 +7,7 @@ from src.preprocessing.text.TextProcessor import TextProcessor
 
 def get_train_txt(caching_dir: str) -> str:
   ''' The file that contain all preprocessed traindata metadata. '''
-  return os.path.join(caching_dir, 'train.txt')
+  return os.path.join(caching_dir, 'preprocessing/train.txt')
 
 def save_meta(data: list, path: str):
   with open(path, 'w', encoding='utf-8') as f:

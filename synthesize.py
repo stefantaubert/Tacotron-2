@@ -10,7 +10,6 @@ from infolog import log
 from tacotron.synthesize import tacotron_synthesize
 from wavenet_vocoder.synthesize import wavenet_synthesize
 
-
 def prepare_run(args):
 	modified_hp = hparams.parse(args.hparams)
 	os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -41,8 +40,6 @@ def synthesize(args, hparams, taco_checkpoint, wave_checkpoint, sentences):
 	log('Synthesizing audio from mel-spectrograms.. (This may take a while)')
 	wavenet_synthesize(args, hparams, wave_checkpoint)
 	log('Tacotron-2 TTS synthesis complete!')
-
-
 
 def main():
 	accepted_modes = ['eval', 'synthesis', 'live']
