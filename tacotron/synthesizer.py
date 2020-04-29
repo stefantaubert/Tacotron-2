@@ -12,12 +12,15 @@ from librosa import effects
 from tacotron.models.tacotron import Tacotron
 from tacotron.utils import plot
 #from tacotron.utils.text import text_to_sequence
-from src.preprocessing.text.conversion.SymbolConverter import SymbolConverter
+from src.preprocessing.text.conversion.SymbolConverter import get_from_file
+from src.preprocessing.text.TextProcessor import get_symbols_file
+
 
 
 class Synthesizer:
-	def __init__(self):
-		self._symbol_converter = SymbolConverter()
+	def __init__(self, caching_dir: str):
+		symbols_path = get_symbols_file(caching_dir)
+		self._symbol_converter = get_from_file(symbols_path)
 
 	def load(self, checkpoint_path, hparams, gta=False):
 		log('Constructing model: Tacotron')
@@ -28,10 +31,11 @@ class Synthesizer:
 		split_infos = tf.placeholder(tf.int32, shape=(hparams.tacotron_num_gpus, None), name='split_infos')
 		with tf.variable_scope('Tacotron_model', reuse=tf.AUTO_REUSE) as scope:
 			self.model = Tacotron(hparams)
+			symbols_count = self._symbol_converter.get_symbols_count()
 			if gta:
-				self.model.initialize(inputs, input_lengths, targets, gta=gta, split_infos=split_infos)
+				self.model.initialize(inputs, input_lengths, symbols_count, targets, gta=gta, split_infos=split_infos)
 			else:
-				self.model.initialize(inputs, input_lengths, split_infos=split_infos)
+				self.model.initialize(inputs, input_lengths, symbols_count, split_infos=split_infos)
 
 			self.mel_outputs = self.model.tower_mel_outputs
 			self.linear_outputs = self.model.tower_linear_outputs if (hparams.predict_linear and not gta) else None

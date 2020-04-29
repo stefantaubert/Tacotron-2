@@ -1,7 +1,8 @@
 import os
 from src.etc.Logger import Logger
+from src.etc.IPA_symbol_extraction import extract_symbols
 
-class LJSpeechDatasetParser():
+class LJSpeechIPADatasetParser():
   def __init__(self, path: str, logger: Logger = Logger()):
     self.logger = logger
     self.data = None
@@ -48,8 +49,9 @@ class LJSpeechDatasetParser():
   def _update_characters(self):
     result = set()
 
-    for _, text, _ in self.data:
-      result.update(text)
+    for _, ipa, _ in self.data:
+      symbols = extract_symbols(ipa)
+      result.update(symbols)
     
     self.symbols = result
     return self.symbols
@@ -59,7 +61,7 @@ class LJSpeechDatasetParser():
     return result
 
   def _get_metadata_filepath(self) -> str:
-    result = os.path.join(self.path, 'metadata.csv')
+    result = os.path.join(self.path, 'metadata_ipa.csv')
     return result
 
   def _parse_line(self, line: str) -> tuple:
@@ -68,13 +70,13 @@ class LJSpeechDatasetParser():
     # parts[1] contains years, in parts[2] the years are written out
     # ex. ['LJ001-0045', '1469, 1470;', 'fourteen sixty-nine, fourteen seventy;']
     wav_path = os.path.join(self.wav_dirpath, '{}.wav'.format(basename))
-    text = parts[2]
-    tmp = (basename, text, wav_path)
+    ipa = parts[2]
+    tmp = (basename, ipa, wav_path)
     return tmp
 
 if __name__ == "__main__":
   #parser = LJSpeechDatasetParser('/datasets/LJSpeech-1.1-lite')
-  parser = LJSpeechDatasetParser('/datasets/LJSpeech-1.1')
+  parser = LJSpeechIPADatasetParser('/datasets/LJSpeech-1.1-test')
   result = parser.parse()
   #print(result)
   chars = sorted(parser.symbols)

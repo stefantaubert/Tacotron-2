@@ -13,8 +13,9 @@ from tqdm import tqdm
 from src.preprocessing.Preprocessor import load_meta, get_train_txt
 from src.preprocessing.text.TextProcessor import get_txt_dir
 from src.preprocessing.audio.WavProcessor import get_mel_dir, get_lin_dir, get_wav_dir
-from src.preprocessing.text.conversion.SymbolConverter import SymbolConverter
 from tacotron.train import get_save_dir
+from src.preprocessing.text.conversion.SymbolConverter import get_from_file
+from src.preprocessing.text.TextProcessor import get_symbols_file
 
 def generate_fast(model, text):
   model.synthesize([text], None, None, None, None)
@@ -23,7 +24,7 @@ def generate_fast(model, text):
 def run_live(args, checkpoint_path, hparams):
   #Log to Terminal without keeping any records in files
   log(hparams_debug_string())
-  synth = Synthesizer()
+  synth = Synthesizer(args.caching_dir)
   synth.load(checkpoint_path, hparams)
 
   #Generate fast greeting message
@@ -66,7 +67,7 @@ def run_eval(args, checkpoint_path, hparams, sentences):
   os.makedirs(os.path.join(log_dir, 'plots'), exist_ok=True)
 
   log(hparams_debug_string())
-  synth = Synthesizer()
+  synth = Synthesizer(args.caching_dir)
   synth.load(checkpoint_path, hparams)
 
   #Set inputs batch wise
@@ -111,7 +112,7 @@ def run_synthesis(args, checkpoint_path, hparams):
   metadata_path = get_train_txt(args.caching_dir)
   metadata = load_meta(metadata_path)
   log(hparams_debug_string())
-  synth = Synthesizer()
+  synth = Synthesizer(args.caching_dir)
   synth.load(checkpoint_path, hparams, gta=gta)
   frame_shift_ms = hparams.hop_size / hparams.sample_rate
   hours = sum([int(x[2]) for x in metadata]) * frame_shift_ms / (3600)
@@ -125,13 +126,15 @@ def run_synthesis(args, checkpoint_path, hparams):
   txt_dir = get_txt_dir(args.caching_dir)
   mel_dir = get_mel_dir(args.caching_dir)
   wav_dir = get_wav_dir(args.caching_dir)
-  conv = SymbolConverter()
+
+  symbol_file = get_symbols_file(args.caching_dir)
+  conv = get_from_file(symbol_file)
   with open(gta_map_file, 'w') as file:
     for i, meta in enumerate(tqdm(metadata)):
       text_paths = [os.path.join(txt_dir, "{}.npy".format(m[0])) for m in meta]
       text_symbols = [np.load(pth) for pth in text_paths]
       # trim ~ at the end
-      texts = [conv.sequence_to_text(x)[:-1] for x in text_symbols]
+      texts = [conv.sequence_to_original_text(x) for x in text_symbols]
       #texts = [m[5] for m in meta]
       mel_filenames = [os.path.join(mel_dir, "{}.npy".format(m[0])) for m in meta]
       wav_filenames = [os.path.join(wav_dir, "{}.npy".format(m[0])) for m in meta]

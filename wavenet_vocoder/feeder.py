@@ -390,7 +390,7 @@ class Feeder:
 			new_batch = []
 			for b in batch:
 				x, c, g, l = b
-				x = audio.trim_silence(x, hparams)
+				x = audio.trim_silence(x, self._hparams)
 				if max_time_steps is not None and len(x) > max_time_steps:
 					start = np.random.randint(0, len(c) - max_time_steps)
 					x = x[start: start + max_time_steps]

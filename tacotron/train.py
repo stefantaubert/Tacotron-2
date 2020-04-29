@@ -10,8 +10,9 @@ import numpy as np
 import tensorflow as tf
 from datasets import audio
 from hparams import hparams_debug_string
-from src.preprocessing.text.conversion.SymbolConverter import SymbolConverter
-from src.preprocessing.text.symbols import save_to_file as save_symbols_to_file
+from src.preprocessing.text.conversion.SymbolConverter import get_from_file
+from src.preprocessing.text.TextProcessor import get_symbols_file
+
 from tacotron.Feeder import Feeder
 from tacotron.utils.ValueWindow import ValueWindow
 from tacotron.utils import plot
@@ -24,17 +25,17 @@ log = infolog.log
 def time_string():
 	return datetime.now().strftime('%Y-%m-%d %H:%M')
 
-def add_embedding_stats(summary_writer, embedding_names, paths_to_meta, checkpoint_path):
+def add_embedding_stats(summary_writer, embedding_names, checkpoint_path):
 	#Create tensorboard projector
 	config = tf.contrib.tensorboard.plugins.projector.ProjectorConfig()
 	config.model_checkpoint_path = checkpoint_path
 
-	for embedding_name, path_to_meta in zip(embedding_names, paths_to_meta):
+	for embedding_name in embedding_names:
 		#Initialize config
 		embedding = config.embeddings.add()
 		#Specifiy the embedding variable and the metadata
 		embedding.tensor_name = embedding_name
-		embedding.metadata_path = path_to_meta
+		#embedding.metadata_path = path_to_meta
 	
 	#Project the embeddings to space dimensions for visualization
 	tf.contrib.tensorboard.plugins.projector.visualize_embeddings(summary_writer, config)
@@ -78,15 +79,15 @@ def add_eval_stats(summary_writer, step, linear_loss, before_loss, after_loss, s
 	test_summary = tf.Summary(value=values)
 	summary_writer.add_summary(test_summary, step)
 
-def model_train_mode(args, feeder, hparams, global_step):
+def model_train_mode(args, feeder, hparams, global_step, symbols_count):
 	with tf.variable_scope('Tacotron_model', reuse=tf.AUTO_REUSE) as scope:
 		model = Tacotron(hparams)
 		if hparams.predict_linear:
-			model.initialize(feeder.inputs, feeder.input_lengths, feeder.mel_targets, feeder.token_targets, linear_targets=feeder.linear_targets,
+			model.initialize(feeder.inputs, feeder.input_lengths, symbols_count, feeder.mel_targets, feeder.token_targets, linear_targets=feeder.linear_targets,
 				targets_lengths=feeder.targets_lengths, global_step=global_step,
 				is_training=True, split_infos=feeder.split_infos)
 		else:
-			model.initialize(feeder.inputs, feeder.input_lengths, feeder.mel_targets, feeder.token_targets,
+			model.initialize(feeder.inputs, feeder.input_lengths, symbols_count, feeder.mel_targets, feeder.token_targets,
 				targets_lengths=feeder.targets_lengths, global_step=global_step,
 				is_training=True, split_infos=feeder.split_infos)
 		model.add_loss()
@@ -94,15 +95,15 @@ def model_train_mode(args, feeder, hparams, global_step):
 		stats = add_train_stats(model, hparams)
 		return model, stats
 
-def model_test_mode(args, feeder, hparams, global_step):
+def model_test_mode(args, feeder, hparams, global_step, symbols_count):
 	with tf.variable_scope('Tacotron_model', reuse=tf.AUTO_REUSE) as scope:
 		model = Tacotron(hparams)
 		if hparams.predict_linear:
-			model.initialize(feeder.eval_inputs, feeder.eval_input_lengths, feeder.eval_mel_targets, feeder.eval_token_targets,
+			model.initialize(feeder.eval_inputs, feeder.eval_input_lengths, symbols_count, feeder.eval_mel_targets, feeder.eval_token_targets,
 				linear_targets=feeder.eval_linear_targets, targets_lengths=feeder.eval_targets_lengths, global_step=global_step,
 				is_training=False, is_evaluating=True, split_infos=feeder.eval_split_infos)
 		else:
-			model.initialize(feeder.eval_inputs, feeder.eval_input_lengths, feeder.eval_mel_targets, feeder.eval_token_targets,
+			model.initialize(feeder.eval_inputs, feeder.eval_input_lengths, symbols_count, feeder.eval_mel_targets, feeder.eval_token_targets,
 				targets_lengths=feeder.eval_targets_lengths, global_step=global_step, is_training=False, is_evaluating=True, 
 				split_infos=feeder.eval_split_infos)
 		model.add_loss()
@@ -112,7 +113,10 @@ def get_save_dir(log_dir):
   return os.path.join(log_dir, 'taco_pretrained')
 
 def train(log_dir, args, hparams):
-	symbol_converter = SymbolConverter()
+	symbol_file = get_symbols_file(args.caching_dir)
+	symbol_converter = get_from_file(symbol_file)
+	symbols_count = symbol_converter.get_symbols_count()
+
 	save_dir = get_save_dir(log_dir)
 	plot_dir = os.path.join(log_dir, 'plots')
 	wav_dir = os.path.join(log_dir, 'wavs')
@@ -154,13 +158,8 @@ def train(log_dir, args, hparams):
 
 	#Set up model:
 	global_step = tf.Variable(0, name='global_step', trainable=False)
-	model, stats = model_train_mode(args, feeder, hparams, global_step)
-	eval_model = model_test_mode(args, feeder, hparams, global_step)
-
-	#Embeddings metadata
-	char_embedding_meta = os.path.join(meta_folder, 'CharacterEmbeddings.tsv')
-	save_symbols_to_file(char_embedding_meta)
-	char_embedding_meta = char_embedding_meta.replace(log_dir, '..')
+	model, stats = model_train_mode(args, feeder, hparams, global_step, symbols_count)
+	eval_model = model_test_mode(args, feeder, hparams, global_step, symbols_count)
 
 	#Potential Griffin-Lim GPU setup
 	if hparams.GL_on_GPU:
@@ -405,7 +404,7 @@ def train(log_dir, args, hparams):
 
 					#Update Projector
 					log('\nSaving Model Character Embeddings visualization..')
-					add_embedding_stats(summary_writer, [model.embedding_table.name], [char_embedding_meta], checkpoint_state.model_checkpoint_path)
+					add_embedding_stats(summary_writer, [model.embedding_table.name], checkpoint_state.model_checkpoint_path)
 					log('Tacotron Character embeddings have been updated on tensorboard!')
 
 			log('Tacotron training complete after {} global steps!'.format(args.tacotron_train_steps), slack=True)

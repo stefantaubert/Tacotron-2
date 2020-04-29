@@ -21,8 +21,6 @@ from tacotron.models.modules.StopProjection import StopProjection
 from tacotron.models.modules.ZoneoutLSTMCell import ZoneoutLSTMCell
 from tacotron.models.TacoTestHelper import TacoTestHelper
 from tacotron.models.TacoTrainingHelper import TacoTrainingHelper
-#from tacotron.utils.symbols import symbols
-from src.preprocessing.text.symbols import symbols_count
 
 def split_func(x, split_pos):
 	rst = []
@@ -39,7 +37,7 @@ class Tacotron():
 	def __init__(self, hparams):
 		self._hparams = hparams
 
-	def initialize(self, inputs, input_lengths, mel_targets=None, stop_token_targets=None, linear_targets=None, targets_lengths=None, gta=False,
+	def initialize(self, inputs, input_lengths, symbols_count: int, mel_targets=None, stop_token_targets=None, linear_targets=None, targets_lengths=None, gta=False,
 			global_step=None, is_training=False, is_evaluating=False, split_infos=None):
 		"""
 		Initializes the model for inference
@@ -122,10 +120,9 @@ class Tacotron():
 
 					#GTA is only used for predicting mels to train Wavenet vocoder, so we ommit post processing when doing GTA synthesis
 					post_condition = hp.predict_linear and not gta
-
+					
 					# Embeddings ==> [batch_size, sequence_length, embedding_dim]
-					self.embedding_table = tf.get_variable(
-						'inputs_embedding', [symbols_count, hp.embedding_dim], dtype=tf.float32)
+					self.embedding_table = tf.get_variable('inputs_embedding', [symbols_count, hp.embedding_dim], dtype=tf.float32)
 					embedded_inputs = tf.nn.embedding_lookup(self.embedding_table, tower_inputs[i])
 
 
