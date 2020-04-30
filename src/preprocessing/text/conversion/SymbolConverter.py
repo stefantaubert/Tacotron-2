@@ -55,7 +55,12 @@ class SymbolConverter():
     with open(file_path, 'w', encoding='utf-8') as f:
       json.dump(self._id_to_symbol, f)
 
-  def text_to_sequence(self, text):
+  def remove_unknown_symbols(self, symbols):
+    result = [symbol for symbol in symbols if symbol in self._id_to_symbol.keys()]
+    return result
+    
+  # todo rename to symbols_to_sequence
+  def text_to_sequence(self, chars):
     '''Converts a string of text to a sequence of IDs corresponding to the symbols in the text.
 
       Args:
@@ -66,7 +71,7 @@ class SymbolConverter():
     '''
     sequence = []
 
-    ids = self._get_valid_symbolids(text)
+    ids = self._get_valid_symbolids(chars)
     sequence.extend(ids)
 
     # Append EOS token

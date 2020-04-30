@@ -6,9 +6,13 @@ import numpy as np
 from tqdm import tqdm
 
 from hparams import hparams
-from src.preprocessing.parser.LJSpeechDatasetParser import LJSpeechDatasetParser
+from src.etc.IPA_conversion import text_to_ipa
+from src.etc.IPA_symbol_extraction import extract_symbols
+from src.preprocessing.parser.DatasetParserBase import DatasetParserBase
+from src.preprocessing.parser.UtteranceFormat import UtteranceFormat
 from src.preprocessing.text.adjustments.TextAdjuster import TextAdjuster
 from src.preprocessing.text.conversion.SymbolConverter import get_from_symbols
+
 
 def get_txt_dir(caching_dir: str) -> str:
   ''' The directory to write the preprocessed text into. '''
@@ -34,27 +38,65 @@ class TextProcessor():
     os.makedirs(self.caching_dir, exist_ok=True)
     os.makedirs(self.txt_dir, exist_ok=True)
   
-  def process(self, dataset: LJSpeechDatasetParser, n_jobs):
+  def _preprocess_utterances(self, dataset):
     utterances = dataset.parse()
-    symbols = dataset.symbols
+    ds_format = dataset.get_format()
+ 
+    print('preprocess text step 1...')
+    processed_utterances = []
+    all_symbols = set()
+    # todo multicore
+    for basename, text, _ in tqdm(utterances):
+      symbols = []
+      if ds_format == UtteranceFormat.ENG:
+        adjusted_text = self.adjuster.adjust(text)
 
-    result = []
+        if self.hp.convert_to_ipa:
+            ipa = text_to_ipa(adjusted_text)
+            symbols = extract_symbols(ipa)
+        else:
+          symbols = list(adjusted_text)
+      elif ds_format == UtteranceFormat.IPA:
+        ipa = text
+        symbols = extract_symbols(ipa)
+      else:
+        raise NotImplementedError()
 
-    converter = get_from_symbols(symbols)
+      all_symbols.update(set(symbols))
+
+      tmp = (basename, symbols)
+      processed_utterances.append(tmp)
+
+    return (processed_utterances, all_symbols)
+  
+  def _dump_all_symbols(self, converter):
     symbols_dump_path = get_symbols_file(self.caching_dir)
     converter.dump(symbols_dump_path)
 
-    for basename, text, _ in tqdm(utterances):
-      text = self.adjuster.adjust(text)
-      # todo multicore
+  def _convert_to_sequence_and_save(self, processed_utterances, converter):
+    result = []
+    # todo multicore
+    print('preprocess text step 2...')
+    for basename, text in tqdm(processed_utterances):
       sequence = converter.text_to_sequence(text)
+
+      # save to file
       txt_filename = '{}.npy'.format(basename)
       txt_path = os.path.join(self.txt_dir, txt_filename)
       np.save(txt_path, sequence, allow_pickle=False)
+
       text_length = len(sequence)
       tmp = (basename, text_length)
       result.append(tmp)
 
+    return result
+
+  def process(self, dataset: DatasetParserBase, n_jobs):
+    print('parse dataset...')
+    processed_utterances, all_symbols = self._preprocess_utterances(dataset)
+    converter = get_from_symbols(all_symbols)
+    self._dump_all_symbols(converter)
+    result = self._convert_to_sequence_and_save(processed_utterances, converter)
     self.processing_result = result
     return result
 
@@ -67,3 +109,22 @@ class TextProcessor():
     print('Written {} utterances'.format(len(self.processing_result)))
     print('Sum input length (text chars): {}'.format(textlenght_sum))
     print('Max input length (text chars): {}'.format(textlenght_max))
+
+if __name__ == "__main__":
+  from hparams import hparams
+  from multiprocessing import cpu_count
+
+  if __name__ == "__main__":
+    from src.preprocessing.parser.LJSpeechDatasetParser import LJSpeechDatasetParser
+    from src.preprocessing.parser.DummyIPADatasetParser import DummyIPADatasetParser
+    
+    #parser = LJSpeechDatasetParser('/datasets/LJSpeech-1.1-test')
+    parser = DummyIPADatasetParser('/datasets/IPA-Dummy')
+
+    processor = TextProcessor(
+      hparams.parse(''),
+      '/datasets/models/tacotron/cache'
+    )
+    
+    processor.process(parser, cpu_count())
+    processor.show_stats()

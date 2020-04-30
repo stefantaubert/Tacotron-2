@@ -62,7 +62,6 @@ def main():
   #taco_checkpoint = os.path.join('logs-' + run_name, 'taco_' + args.checkpoint)
 
   sentences = get_sentences(args)
-
   tacotron_synthesize(args, hparams, tacotron_pretrained, sentences)
 
 

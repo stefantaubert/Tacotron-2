@@ -14,7 +14,7 @@ from tacotron.utils import plot
 #from tacotron.utils.text import text_to_sequence
 from src.preprocessing.text.conversion.SymbolConverter import get_from_file
 from src.preprocessing.text.TextProcessor import get_symbols_file
-
+from src.etc.IPA_symbol_extraction import extract_symbols
 
 
 class Synthesizer:
@@ -41,7 +41,7 @@ class Synthesizer:
 			self.linear_outputs = self.model.tower_linear_outputs if (hparams.predict_linear and not gta) else None
 			self.alignments = self.model.tower_alignments
 			self.stop_token_prediction = self.model.tower_stop_token_prediction
-			self.targets = targets
+			self.charsets = targets
 
 		if hparams.GL_on_GPU:
 			self.GLGPU_mel_inputs = tf.placeholder(tf.float32, (None, hparams.num_mels), name='GLGPU_mel_inputs')
@@ -80,7 +80,6 @@ class Synthesizer:
 
 	def synthesize(self, texts, basenames, out_dir, log_dir, mel_filenames):
 		hparams = self._hparams
-		#cleaner_names = [x.strip() for x in hparams.cleaners.split(',')]
 		#[-max, max] or [0,max]
 		T2_output_range = (-hparams.max_abs_value, hparams.max_abs_value) if hparams.symmetric_mels else (0, hparams.max_abs_value)
 
@@ -92,7 +91,22 @@ class Synthesizer:
 				mel_filenames.append(mel_filenames[-1])
 
 		assert 0 == len(texts) % self._hparams.tacotron_num_gpus
-		seqs = [self._symbol_converter.text_to_sequence(text) for text in texts]
+
+		ipa_synt = self._hparams.synthesize_ipa
+
+		if ipa_synt:
+			texts = [extract_symbols(ipa) for ipa in texts]
+		else:
+			texts = [list(text) for text in texts]
+
+		valid_symbols = [self._symbol_converter.remove_unknown_symbols(symbols) for symbols in texts]
+		for i, t in enumerate(valid_symbols):
+			print("reduced sentences from")
+			print(texts[i])
+			print("to")
+			print(t)
+
+		seqs = [self._symbol_converter.text_to_sequence(symbols) for symbols in valid_symbols]
 		#- seqs = [np.asarray(text_to_sequence(text, cleaner_names)) for text in texts]
 		input_lengths = [len(seq) for seq in seqs]
 

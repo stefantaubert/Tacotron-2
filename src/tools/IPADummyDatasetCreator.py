@@ -1,0 +1,39 @@
+from src.preprocessing.parser.LJSpeechDatasetParser import LJSpeechDatasetParser, get_metadata_filepath
+import eng_to_ipa as ipa
+import shutil
+import os
+from tqdm import tqdm
+from src.etc.IPA_conversion import text_to_ipa
+from src.etc.dir_copy import copytree
+
+def convert_utterances(dataset: LJSpeechDatasetParser, dest_dir: str):
+  dir_exists = os.path.isdir(dest_dir) and os.path.exists(dest_dir)
+  if dir_exists:
+    shutil.rmtree(dest_dir)
+
+  copytree(dataset.path, dest_dir)
+
+  result = dataset.parse()
+  dest_meta = get_metadata_filepath(dest_dir)
+
+  with open(dest_meta, 'w', encoding='utf-8') as file:
+    for basename, text, _ in tqdm(result):
+      ipa_text = text_to_ipa(text)
+      file.write('{}|{}|{}\n'.format(basename, text, ipa_text))
+
+if __name__ == "__main__":
+  import cProfile
+
+  dataset_path = '/datasets/LJSpeech-1.1-test'
+  dest_dir = '/datasets/IPA-Dummy'
+
+  parser = LJSpeechDatasetParser(dataset_path)
+  convert_utterances(parser, dest_dir)
+  #cProfile.run('convert_utterances(parser, dest_map)', None, )
+
+  '''
+     1703    9.942    0.006    9.942    0.006 {method 'execute' of 'sqlite3.Cursor' objects}
+        5    0.000    0.000    0.000    0.000 {method 'extend' of 'list' objects}
+     1703    7.198    0.004    7.198    0.004 {method 'fetchall' of 'sqlite3.Cursor' objects}
+  '''
+

@@ -23,7 +23,6 @@ class Feeder:
 		super(Feeder, self).__init__()
 		self._coord = coordinator
 		self._hparams = hparams
-		self._cleaner_names = [x.strip() for x in hparams.cleaners.split(',')]
 		self._train_offset = 0
 		self._test_offset = 0
 

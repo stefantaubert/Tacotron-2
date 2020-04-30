@@ -1,9 +1,10 @@
 import os
 
 from hparams import hparams
-from src.preprocessing.parser.LJSpeechDatasetParser import LJSpeechDatasetParser
+from src.preprocessing.parser.DatasetParserBase import DatasetParserBase
 from src.preprocessing.audio.WavProcessor import WavProcessor
 from src.preprocessing.text.TextProcessor import TextProcessor
+from src.preprocessing.Dataset import get_parser
 
 def get_train_txt(caching_dir: str) -> str:
   ''' The file that contain all preprocessed traindata metadata. '''
@@ -22,12 +23,12 @@ def load_meta(path: str) -> list:
   return result
 
 class Preprocessor():
-  def __init__(self, n_jobs:int, cache_path: str, dataset_path: str, hp: hparams):
+  def __init__(self, n_jobs:int, cache_path: str, parser: int, hp: hparams):
     self.n_jobs = n_jobs
     self.out_train_filepath = get_train_txt(cache_path)
     self.text_processor = TextProcessor(hp, cache_path)
     self.wav_processor = WavProcessor(hp, cache_path)
-    self.parser = LJSpeechDatasetParser(dataset_path)
+    self.parser = get_parser(parser)
 
   def run(self):
     self.text_paths = self.text_processor.process(self.parser, self.n_jobs)
@@ -54,13 +55,12 @@ class Preprocessor():
 if __name__ == "__main__":
   from multiprocessing import cpu_count
   from hparams import hparams
+  from src.preprocessing.Dataset import *
+  processor = Preprocessor(
+    cpu_count(), 
+    '/datasets/models/tacotron/cache',
+    parser=IPA_DUMMY,
+    hp=hparams.parse('')
+  )
 
-  if __name__ == "__main__":
-    processor = Preprocessor(
-      cpu_count(), 
-      '/datasets/models/tacotron/cache',
-      '/datasets/LJSpeech-1.1-test',
-      hparams.parse('')
-    )
-
-    processor.run()
+  processor.run()
