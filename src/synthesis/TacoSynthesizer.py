@@ -26,7 +26,7 @@ def synthesize(args, hparams, taco_checkpoint, wave_checkpoint, sentences):
   #Sleep 1/2 second to let previous graph close and avoid error messages while Wavenet is synthesizing
   sleep(0.5)
 
-def main():
+def run():
   parser = argparse.ArgumentParser()
   parser.add_argument('--caching_dir', default='/datasets/models/tacotron/cache')
   parser.add_argument('--checkpoint', default='pretrained/', help='Path to model checkpoint')
@@ -66,4 +66,4 @@ def main():
 
 
 if __name__ == '__main__':
-  main()
+  run()

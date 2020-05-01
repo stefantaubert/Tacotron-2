@@ -23,14 +23,15 @@ class GTASynthesizer:
     log('Tacotron GTA Synthesis\n')
     log('###########################################################\n')
     tacotron_pretrained = get_save_dir(self.log_dir)
-    input_path = tacotron_synthesize(args, hparams, tacotron_pretrained)
+    input_path = tacotron_synthesize(self.args, self.hp, tacotron_pretrained)
     #tf.reset_default_graph()
     #Sleep 1/2 second to let previous graph close and avoid error messages while Wavenet is training
     #sleep(0.5)
     #input_path = os.path.join('tacotron_' + args.output_dir, 'gta', 'map.txt')
 
-if __name__ == "__main__":
 
+def run():
+  
   import argparse
 
   parser = argparse.ArgumentParser()
@@ -71,3 +72,6 @@ if __name__ == "__main__":
   trainer = GTASynthesizer(log_dir, args, modified_hp)
   
   trainer.train()
+
+if __name__ == "__main__":
+  run()

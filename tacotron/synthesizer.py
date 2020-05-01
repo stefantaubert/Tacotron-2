@@ -100,11 +100,12 @@ class Synthesizer:
 			texts = [list(text) for text in texts]
 
 		valid_symbols = [self._symbol_converter.remove_unknown_symbols(symbols) for symbols in texts]
-		for i, t in enumerate(valid_symbols):
-			print("reduced sentences from")
-			print(texts[i])
-			print("to")
-			print(t)
+		if False:
+			for i, t in enumerate(valid_symbols):
+				print("reduced sentences from")
+				print(texts[i])
+				print("to")
+				print(t)
 
 		seqs = [self._symbol_converter.text_to_sequence(symbols) for symbols in valid_symbols]
 		#- seqs = [np.asarray(text_to_sequence(text, cleaner_names)) for text in texts]

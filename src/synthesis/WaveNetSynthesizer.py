@@ -14,7 +14,7 @@ def synthesize(args, hparams, taco_checkpoint, wave_checkpoint, sentences):
 	wavenet_synthesize(args, hparams, wave_checkpoint)
 	log('Tacotron-2 TTS synthesis complete!')
 
-def main():
+def run():
   parser = argparse.ArgumentParser()
   parser.add_argument('--caching_dir', default='/datasets/models/tacotron/cache')
   #parser.add_argument('--checkpoint', default='pretrained/', help='Path to model checkpoint')
@@ -49,4 +49,4 @@ def main():
   wavenet_synthesize(args, hparams, wavenet_pretrained)
 
 if __name__ == '__main__':
-  main()
+  run()

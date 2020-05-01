@@ -341,7 +341,8 @@ hparams = tf.contrib.training.HParams(
 	synthesize_ipa = True,
 	sentences = [
 	# From July 8, 2017 New York Times:
-	'ˈprɪnɪŋ, ɪn ðə ˈoʊnli sɛns wɪθ wɪʧ wi ər æt ˈprɛzənt kənˈsərnd,'
+	'ˈprɪnɪŋ'
+	#'ˈprɪnɪŋ, ɪn ðə ˈoʊnli sɛns wɪθ wɪʧ wi ər æt ˈprɛzənt kənˈsərnd,'
 	#'Scientists at the CERN laboratory say they have discovered a new particle.',
 	#From The web (random long utterance)
 	# 'On offering to help the blind man, the man who then stole his car, had not, at that precise moment, had any evil intention, quite the contrary, \

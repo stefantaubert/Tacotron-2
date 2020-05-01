@@ -28,13 +28,11 @@ class WavTraining:
     log('Wavenet Train\n')
     log('###########################################################\n')
 
-    checkpoint = wavenet_train(log_dir, args, hparams)
+    checkpoint = wavenet_train(self.log_dir, self.args, self.hp)
     if checkpoint is None:
       raise ('Error occured while training Wavenet, Exiting!')
 
-
-if __name__ == "__main__":
-
+def run():
   import argparse
 
   parser = argparse.ArgumentParser()
@@ -43,11 +41,11 @@ if __name__ == "__main__":
   parser.add_argument('--tf_log_level', type=int, default=1, help='Tensorflow C++ log level.')
   parser.add_argument('--hparams', default='', help='Hyperparameter overrides as a comma-separated list of name=value pairs')
   parser.add_argument('--restore', type=bool, default=False, help='Set this to False to do a fresh training')
-  parser.add_argument('--checkpoint_interval', type=int, default=1, help='Steps between writing checkpoints') # 2500
-  parser.add_argument('--eval_interval', type=int, default=123, help='Steps between eval on test data')
-  parser.add_argument('--summary_interval', type=int, default=1234, help='Steps between running summary ops')
-  parser.add_argument('--embedding_interval', type=int, default=123, help='Steps between updating embeddings projection visualization')
-  parser.add_argument('--wavenet_train_steps', type=int, default=3, help='total number of wavenet training steps')
+  parser.add_argument('--checkpoint_interval', type=int, default=10, help='Steps between writing checkpoints') # 2500
+  parser.add_argument('--eval_interval', type=int, default=100000, help='Steps between eval on test data')
+  parser.add_argument('--summary_interval', type=int, default=10000, help='Steps between running summary ops')
+  parser.add_argument('--embedding_interval', type=int, default=10000, help='Steps between updating embeddings projection visualization')
+  parser.add_argument('--wavenet_train_steps', type=int, default=2000, help='total number of wavenet training steps')
   
   args = parser.parse_args()
   modified_hp = hparams.parse(args.hparams)
@@ -60,3 +58,6 @@ if __name__ == "__main__":
   trainer = WavTraining(log_dir, args, modified_hp)
   
   trainer.train()
+
+if __name__ == "__main__":
+  run()
