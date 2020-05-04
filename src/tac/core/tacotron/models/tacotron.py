@@ -2,25 +2,31 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.seq2seq import dynamic_decode
 
-from src.tac.infolog import log
-from src.tac.core.tacotron.models.achitecture_wrappers.TacotronDecoderCell import TacotronDecoderCell
-from src.tac.core.tacotron.models.achitecture_wrappers.TacotronEncoderCell import TacotronEncoderCell
-#from tacotron.models.Architecture_wrappers import TacotronEncoderCell, TacotronDecoderCell
+from src.tac.core.tacotron.models.achitecture_wrappers.TacotronDecoderCell import \
+    TacotronDecoderCell
+from src.tac.core.tacotron.models.achitecture_wrappers.TacotronEncoderCell import \
+    TacotronEncoderCell
 from src.tac.core.tacotron.models.CustomDecoder import CustomDecoder
-from src.tac.core.tacotron.models.LocationSensitiveAttention import LocationSensitiveAttention
+from src.tac.core.tacotron.models.LocationSensitiveAttention import \
+    LocationSensitiveAttention
 from src.tac.core.tacotron.models.modules.CBHG import CBHG
 from src.tac.core.tacotron.models.modules.DecoderRNN import DecoderRNN
-from src.tac.core.tacotron.models.modules.EncoderConvolutions import EncoderConvolutions
+from src.tac.core.tacotron.models.modules.EncoderConvolutions import \
+    EncoderConvolutions
 from src.tac.core.tacotron.models.modules.EncoderRNN import EncoderRNN
-from src.tac.core.tacotron.models.modules.FrameProjection import FrameProjection
-from src.tac.core.tacotron.models.modules.HighwayNet import HighwayNet
+from src.tac.core.tacotron.models.modules.FrameProjection import \
+    FrameProjection
 from src.tac.core.tacotron.models.modules.helpers import *
+from src.tac.core.tacotron.models.modules.HighwayNet import HighwayNet
 from src.tac.core.tacotron.models.modules.Postnet import Postnet
 from src.tac.core.tacotron.models.modules.Prenet import Prenet
 from src.tac.core.tacotron.models.modules.StopProjection import StopProjection
-from src.tac.core.tacotron.models.modules.ZoneoutLSTMCell import ZoneoutLSTMCell
+from src.tac.core.tacotron.models.modules.ZoneoutLSTMCell import \
+    ZoneoutLSTMCell
 from src.tac.core.tacotron.models.TacoTestHelper import TacoTestHelper
 from src.tac.core.tacotron.models.TacoTrainingHelper import TacoTrainingHelper
+from src.tac.infolog import log
+
 
 def split_func(x, split_pos):
 	rst = []

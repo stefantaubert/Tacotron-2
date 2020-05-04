@@ -6,8 +6,6 @@ import tensorflow as tf
 
 matplotlib.use('Agg')
 
-
-
 def _assert_valid_input_type(s):
 	assert s == 'mulaw-quantize' or s == 'mulaw' or s == 'raw'
 

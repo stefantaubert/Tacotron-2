@@ -7,8 +7,6 @@ from src.tac.preprocessing.Preprocessor import Preprocessor
 
 
 def run():
-
-
   print('initializing preprocessing..')
   parser = argparse.ArgumentParser()
   parser.add_argument('--dataset', default=LJSPEECH_TEST)

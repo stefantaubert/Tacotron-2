@@ -28,6 +28,5 @@ class EncoderConvolutions:
 		with tf.variable_scope(self.scope):
 			x = inputs
 			for i in range(self.enc_conv_num_layers):
-				x = conv1d(x, self.kernel_size, self.channels, self.activation,
-					self.is_training, self.drop_rate, self.bnorm, 'conv_layer_{}_'.format(i + 1)+self.scope)
+				x = conv1d(x, self.kernel_size, self.channels, self.activation, self.is_training, self.drop_rate, self.bnorm, 'conv_layer_{}_'.format(i + 1)+self.scope)
 		return x

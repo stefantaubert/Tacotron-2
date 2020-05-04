@@ -7,9 +7,9 @@ from src.etc.audio import get_hop_size, melspectrogram, save_wavenet_wav
 from src.tac.core.wavenet_vocoder import util
 from src.tac.core.wavenet_vocoder.feeder import _interp
 from src.tac.core.wavenet_vocoder.models import create_model
-from src.tac.core.wavenet_vocoder.train import (create_shadow_saver,
-                                                load_averaged_model)
 from src.tac.infolog import log
+from src.tac.training.wav_training import (create_shadow_saver,
+                                           load_averaged_model)
 
 
 class Synthesizer:
