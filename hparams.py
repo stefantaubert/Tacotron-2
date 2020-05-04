@@ -5,7 +5,7 @@ import tensorflow as tf
 hparams = tf.contrib.training.HParams(
 	# convert the dataset utterances to ipa and train with ipa
 	# remarks: works only if the dataset is UtteranceFormat.ENG
-	convert_to_ipa=True,
+	convert_to_ipa=False,
 
 	#If you only have 1 GPU or want to use only one GPU, please set num_gpus=0 and specify the GPU idx on run. example:
 		#expample 1 GPU of index 2 (train on "/gpu2" only): CUDA_VISIBLE_DEVICES=2 python train.py --model='Tacotron' --hparams='tacotron_gpu_start_idx=2'
@@ -338,12 +338,12 @@ hparams = tf.contrib.training.HParams(
 
 	#Eval/Debug parameters
 	#Eval sentences (if no eval text file was specified during synthesis, these sentences are used for eval)
-	synthesize_ipa = True,
+	synthesize_ipa = False,
 	sentences = [
 	# From July 8, 2017 New York Times:
-	'ˈprɪnɪŋ'
+	#'ˈprɪnɪŋ'
 	#'ˈprɪnɪŋ, ɪn ðə ˈoʊnli sɛns wɪθ wɪʧ wi ər æt ˈprɛzənt kənˈsərnd,'
-	#'Scientists at the CERN laboratory say they have discovered a new particle.',
+	'Scientists at the CERN laboratory say they have discovered a new particle.',
 	#From The web (random long utterance)
 	# 'On offering to help the blind man, the man who then stole his car, had not, at that precise moment, had any evil intention, quite the contrary, \
 	# what he did was nothing more than obey those feelings of generosity and altruism which, as everyone knows, \

@@ -41,14 +41,14 @@ def run():
   import argparse
   parser = argparse.ArgumentParser()
   parser.add_argument('--caching_dir', default='/datasets/models/tacotron/cache')
-  parser.add_argument('--tacotron_train_steps', type=int, default=5000, help='total number of tacotron training steps')
+  parser.add_argument('--tacotron_train_steps', type=int, default=20000, help='total number of tacotron training steps')
   parser.add_argument('--tf_log_level', type=int, default=1, help='Tensorflow C++ log level.')
-  parser.add_argument('--checkpoint_interval', type=int, default=100, help='Steps between writing checkpoints') # 2500
-  parser.add_argument('--eval_interval', type=int, default=10000, help='Steps between eval on test data')
+  parser.add_argument('--checkpoint_interval', type=int, default=1000, help='Steps between writing checkpoints') # 2500
+  parser.add_argument('--eval_interval', type=int, default=30000, help='Steps between eval on test data')
   parser.add_argument('--hparams', default='', help='Hyperparameter overrides as a comma-separated list of name=value pairs')
   parser.add_argument('--restore', type=bool, default=False, help='Set this to False to do a fresh training')
-  parser.add_argument('--summary_interval', type=int, default=10000, help='Steps between running summary ops')
-  parser.add_argument('--embedding_interval', type=int, default=10000, help='Steps between updating embeddings projection visualization')
+  parser.add_argument('--summary_interval', type=int, default=30000, help='Steps between running summary ops')
+  parser.add_argument('--embedding_interval', type=int, default=30000, help='Steps between updating embeddings projection visualization')
 
   #parser.add_argument('--base_dir', default='')
   #parser.add_argument('--tacotron_input', default='/datasets/models/tacotron/cache/train.txt')

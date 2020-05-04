@@ -8,7 +8,7 @@ from src.synthesis.WaveNetSynthesizer import run as run_wavnet_synth
 def run():
   #run_preprocessing()
   print("##### Taco Training #######")
-  #run_tacotron_training()
+  run_tacotron_training()
   print("##### GTA Synthesis #######")
   run_gta()
   print("##### WaveNet Training #######")
