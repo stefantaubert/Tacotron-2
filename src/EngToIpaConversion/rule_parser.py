@@ -31,7 +31,7 @@ def get_rule(rule_id: str):
       instance = rule_type(likelihood)
       return instance
     else:
-      print('Rule {} not known.'.format(rule))
+      print('Rule {} unknown.'.format(rule))
       return None
       
   print('Invalid rule'.format(rule_id))

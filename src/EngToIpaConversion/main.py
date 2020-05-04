@@ -11,8 +11,8 @@ def run(args):
   print(result)
 
 if __name__ == "__main__":
-  x = "Printing, differs from the arts and crafts represented in the Exhibition"
-  x = "fist, forest, wolf, and village There this the test."
+  x = "Printing, differs from the arts and crafts represented in the Exhibition."
+  x += " fist, forest, wolf, and village There this the test."
   parser = argparse.ArgumentParser()
   parser.add_argument('-t','--text', default=x, help='input text which should be transformed')
   parser.add_argument('-r','--rules', nargs='+', default='1<1> 2<0.5> 3<.1> 4 5<0> 6 7', help='rule<likelihood>..., order plays a role')
