@@ -56,9 +56,9 @@ class Preprocessor():
 
 def run():
   from multiprocessing import cpu_count
-  from src.tac.preprocessing.Dataset import LJSPEECH_TEST
+  from src.tac.preprocessing.Dataset import LJSPEECH_TEST, LJSPEECH_LITE
   from src.tac.hparams import hparams
-  
+
   print('initializing preprocessing..')
   parser = argparse.ArgumentParser()
   parser.add_argument('--dataset', default=LJSPEECH_TEST)

@@ -92,9 +92,10 @@ class Feeder:
 			]
 
 			# Create queue for buffering data
-			queue = tf.FIFOQueue(8, [tf.int32, tf.int32, tf.float32, tf.float32, tf.float32, tf.int32, tf.int32], name='input_queue')
-			self._enqueue_op = queue.enqueue(self._placeholders)
-			self.inputs, self.input_lengths, self.mel_targets, self.token_targets, self.linear_targets, self.targets_lengths, self.split_infos = queue.dequeue()
+			self.input_queue = tf.FIFOQueue(8, [tf.int32, tf.int32, tf.float32, tf.float32, tf.float32, tf.int32, tf.int32], name='input_queue')
+			self._enqueue_op = self.input_queue.enqueue(self._placeholders)
+			log("dequeue input_queuue")
+			self.inputs, self.input_lengths, self.mel_targets, self.token_targets, self.linear_targets, self.targets_lengths, self.split_infos = self.input_queue.dequeue()
 
 			self.inputs.set_shape(self._placeholders[0].shape)
 			self.input_lengths.set_shape(self._placeholders[1].shape)
@@ -105,11 +106,12 @@ class Feeder:
 			self.split_infos.set_shape(self._placeholders[6].shape)
 
 			# Create eval queue for buffering eval data
-			eval_queue = tf.FIFOQueue(1, [tf.int32, tf.int32, tf.float32, tf.float32, tf.float32, tf.int32, tf.int32], name='eval_queue')
+			self.eval_queue = tf.FIFOQueue(1, [tf.int32, tf.int32, tf.float32, tf.float32, tf.float32, tf.int32, tf.int32], name='eval_queue')
 			#todo here is a bug with session
-			self._eval_enqueue_op = eval_queue.enqueue(self._placeholders)
+			self._eval_enqueue_op = self.eval_queue.enqueue(self._placeholders)
+			log("dequeue eval")
 			self.eval_inputs, self.eval_input_lengths, self.eval_mel_targets, self.eval_token_targets, \
-				self.eval_linear_targets, self.eval_targets_lengths, self.eval_split_infos = eval_queue.dequeue()
+				self.eval_linear_targets, self.eval_targets_lengths, self.eval_split_infos = self.eval_queue.dequeue()
 
 			self.eval_inputs.set_shape(self._placeholders[0].shape)
 			self.eval_input_lengths.set_shape(self._placeholders[1].shape)
@@ -119,14 +121,20 @@ class Feeder:
 			self.eval_targets_lengths.set_shape(self._placeholders[5].shape)
 			self.eval_split_infos.set_shape(self._placeholders[6].shape)
 
+	def close_queue(self):
+		self.input_queue.dequeue()
+		self.eval_queue.dequeue()
+		self.input_queue.close(cancel_pending_enqueues=True)
+		self.eval_queue.close(cancel_pending_enqueues=True)
+		
 	def start_threads(self, session):
 		self._session = session
 		thread1 = threading.Thread(name='background', target=self._enqueue_next_train_group)
-		thread1.daemon = True #Thread will close when parent quits
+		thread1.daemon = False #Thread will close when parent quits
 		thread1.start()
 
 		thread2 = threading.Thread(name='background', target=self._enqueue_next_test_group)
-		thread2.daemon = True #Thread will close when parent quits
+		thread2.daemon = False #Thread will close when parent quits
 		thread2.start()
 		return [thread1, thread2]
 		
@@ -182,7 +190,9 @@ class Feeder:
 			for batch in batches:
 				feed_dict = dict(zip(self._placeholders, self._prepare_batch(batch, r)))
 				if not self._coord.should_stop():
+					#log("enque op started (train).")
 					self._session.run(self._enqueue_op, feed_dict=feed_dict)
+					#log("enque op finished (train).")
 		log("_enqueue_next_train_group finished.")
 
 	def _enqueue_next_test_group(self):
@@ -192,7 +202,9 @@ class Feeder:
 			for batch in test_batches:
 				feed_dict = dict(zip(self._placeholders, self._prepare_batch(batch, r)))
 				if not self._coord.should_stop():
+					log("enque op started (test).")
 					self._session.run(self._eval_enqueue_op, feed_dict=feed_dict)
+					log("enque op finished (test).")
 		log("_enqueue_next_test_group finished.")
 
 	def _get_next_example(self):

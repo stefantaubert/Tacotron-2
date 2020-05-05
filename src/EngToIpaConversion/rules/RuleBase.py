@@ -4,6 +4,7 @@ class RuleBase():
   def __init__(self, likelihood=1.0):
     super().__init__()
     self.likelihood = likelihood
+    self.name = "unnamed rule"
 
   def should_convert(self):
     # random() -> [0.0, 1.0)

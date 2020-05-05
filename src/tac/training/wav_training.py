@@ -12,7 +12,7 @@ import tensorflow as tf
 
 from src.etc.audio import melspectrogram, save_wavenet_wav
 from src.tac import infolog
-from src.tac.training.tacotron_gta_synthesis import get_gta_map_file, get_synth_dir
+from src.tac.synthesis.tacotron_gta_synthesis import get_gta_map_file, get_synth_dir
 from src.tac.core.tacotron.utils.ValueWindow import ValueWindow
 from src.tac.core.wavenet_vocoder import util
 from src.tac.core.wavenet_vocoder.feeder import Feeder, _interp
@@ -265,93 +265,98 @@ def train(log_dir, args, hparams):
   run_init = False
 
   #Train
-  with tf.Session(config=config) as sess:
+  sess = tf.Session(config=config)
+
+  summary_writer = tf.summary.FileWriter(tensorboard_dir, sess.graph)
+  sess.run(tf.global_variables_initializer())
+
+  #saved model restoring
+  if args.restore:
+    # Restore saved model if the user requested it, default = True
     try:
-      summary_writer = tf.summary.FileWriter(tensorboard_dir, sess.graph)
-      sess.run(tf.global_variables_initializer())
+      checkpoint_state = tf.train.get_checkpoint_state(save_dir)
 
-      #saved model restoring
-      if args.restore:
-        # Restore saved model if the user requested it, default = True
-        try:
-          checkpoint_state = tf.train.get_checkpoint_state(save_dir)
-
-          if (checkpoint_state and checkpoint_state.model_checkpoint_path):
-            log('Loading checkpoint {}'.format(checkpoint_state.model_checkpoint_path), slack=True)
-            load_averaged_model(sess, sh_saver, checkpoint_state.model_checkpoint_path)
-          else:
-            log('No model to load at {}'.format(save_dir), slack=True)
-            if hparams.wavenet_weight_normalization:
-              run_init = True
-
-        except tf.errors.OutOfRangeError as e:
-          log('Cannot restore checkpoint: {}'.format(e), slack=True)
+      if (checkpoint_state and checkpoint_state.model_checkpoint_path):
+        log('Loading checkpoint {}'.format(checkpoint_state.model_checkpoint_path), slack=True)
+        load_averaged_model(sess, sh_saver, checkpoint_state.model_checkpoint_path)
       else:
-        log('Starting new training!', slack=True)
+        log('No model to load at {}'.format(save_dir), slack=True)
         if hparams.wavenet_weight_normalization:
           run_init = True
 
-      if run_init:
-        log('\nApplying Weight normalization in fresh training. Applying data dependent initialization forward pass..')
-        #Create init_model
-        init_model, _ = model_train_mode(args, feeder, hparams, global_step, init=True)
+    except tf.errors.OutOfRangeError as e:
+      log('Cannot restore checkpoint: {}'.format(e), slack=True)
+  else:
+    log('Starting new training!', slack=True)
+    if hparams.wavenet_weight_normalization:
+      run_init = True
 
-      #initializing feeder
-      feeder.start_threads(sess)
+  if run_init:
+    log('\nApplying Weight normalization in fresh training. Applying data dependent initialization forward pass..')
+    #Create init_model
+    init_model, _ = model_train_mode(args, feeder, hparams, global_step, init=True)
 
-      if run_init:
-        #Run one forward pass for model parameters initialization (make prediction on init_batch)
-        _ = sess.run(init_model.tower_y_hat)
-        log('Data dependent initialization done. Starting training!')
-      
-      #Training loop
-      while not coord.should_stop() and step < args.wavenet_train_steps:
-        start_time = time.time()
-        step, loss, opt = sess.run([global_step, model.loss, model.optimize])
-        time_window.append(time.time() - start_time)
-        loss_window.append(loss)
+  #initializing feeder
+  feeder.start_threads(sess)
 
-        message = 'Step {:7d} [{:.3f} sec/step, loss={:.5f}, avg_loss={:.5f}]'.format(
-          step, time_window.average, loss, loss_window.average)
-        log(message, end='\r', slack=(step % args.checkpoint_interval == 0))
+  if run_init:
+    #Run one forward pass for model parameters initialization (make prediction on init_batch)
+    _ = sess.run(init_model.tower_y_hat)
+    log('Data dependent initialization done. Starting training!')
+  
+  #Training loop
+  while not coord.should_stop() and step < args.wavenet_train_steps:
+    start_time = time.time()
+    step, loss, opt = sess.run([global_step, model.loss, model.optimize])
+    time_window.append(time.time() - start_time)
+    loss_window.append(loss)
 
-        if np.isnan(loss) or loss > 100:
-          log('Loss exploded to {:.5f} at step {}'.format(loss, step))
-          raise Exception('Loss exploded')
+    message = 'Step {:7d} [{:.3f} sec/step, loss={:.5f}, avg_loss={:.5f}]'.format(
+      step, time_window.average, loss, loss_window.average)
+    log(message, end='\r', slack=(step % args.checkpoint_interval == 0))
 
-        if step % args.summary_interval == 0:
-          log('\nWriting summary at step {}'.format(step))
-          summary_writer.add_summary(sess.run(stats), step)
+    if np.isnan(loss) or loss > 100:
+      log('Loss exploded to {:.5f} at step {}'.format(loss, step))
+      raise Exception('Loss exploded')
 
-        if step % args.checkpoint_interval == 0 or step == args.wavenet_train_steps:
-          save_log(sess, step, model, plot_dir, wav_dir, hparams=hparams, model_name='WaveNet')
-          save_checkpoint(sess, sh_saver, checkpoint_path, global_step)
+    if step % args.summary_interval == 0:
+      log('\nWriting summary at step {}'.format(step))
+      summary_writer.add_summary(sess.run(stats), step)
 
-        if step % args.eval_interval == 0:
-          log('\nEvaluating at step {}'.format(step))
-          eval_step(sess, step, eval_model, eval_plot_dir, eval_wav_dir, summary_writer=summary_writer , hparams=model._hparams, model_name='WaveNet')
+    if step % args.checkpoint_interval == 0 or step == args.wavenet_train_steps:
+      save_log(sess, step, model, plot_dir, wav_dir, hparams=hparams, model_name='WaveNet')
+      save_checkpoint(sess, sh_saver, checkpoint_path, global_step)
 
-        if hparams.gin_channels > 0 and (step % args.embedding_interval == 0 or step == args.wavenet_train_steps or step == 1):
-          #Get current checkpoint state
-          checkpoint_state = tf.train.get_checkpoint_state(save_dir)
+    if step % args.eval_interval == 0:
+      log('\nEvaluating at step {}'.format(step))
+      eval_step(sess, step, eval_model, eval_plot_dir, eval_wav_dir, summary_writer=summary_writer , hparams=model._hparams, model_name='WaveNet')
 
-          #Update Projector
-          log('\nSaving Model Speaker Embeddings visualization..')
-          add_embedding_stats(summary_writer, [model.embedding_table.name], [speaker_embedding_meta], checkpoint_state.model_checkpoint_path)
-          log('WaveNet Speaker embeddings have been updated on tensorboard!')
+    if hparams.gin_channels > 0 and (step % args.embedding_interval == 0 or step == args.wavenet_train_steps or step == 1):
+      #Get current checkpoint state
+      checkpoint_state = tf.train.get_checkpoint_state(save_dir)
 
-      log('Wavenet training complete after {} global steps'.format(args.wavenet_train_steps), slack=True)
-      coord.request_stop()
-      coord.wait_for_stop()
+      #Update Projector
+      log('\nSaving Model Speaker Embeddings visualization..')
+      add_embedding_stats(summary_writer, [model.embedding_table.name], [speaker_embedding_meta], checkpoint_state.model_checkpoint_path)
+      log('WaveNet Speaker embeddings have been updated on tensorboard!')
 
-    except Exception as e:
-      log('Exiting due to exception: {}'.format(e), slack=True)
-      traceback.print_exc()
-      coord.request_stop(e)
-      coord.wait_for_stop()
-      raise Exception('Exception occured.')
+  log('Wavenet training complete after {} global steps'.format(args.wavenet_train_steps), slack=True)
+  coord.request_stop()
+  coord.wait_for_stop()
 
-  return save_dir
+  try:
+    sess.close()
+    tf.reset_default_graph()
+  except:
+    log("Session bug occured.")
+    # except Exception as e:
+    #   log('Exiting due to exception: {}'.format(e), slack=True)
+    #   traceback.print_exc()
+    #   coord.request_stop(e)
+    #   coord.wait_for_stop()
+    #   raise Exception('Exception occured.')
+  
+  sleep(0.5)
 
 
 def run(testrun: bool = False):
@@ -361,7 +366,7 @@ def run(testrun: bool = False):
   train_steps = 2000
   checkpoint_intervall = 10
   if testrun:
-    train_steps = 3
+    train_steps = 20
     checkpoint_intervall = 1
 
   parser.add_argument('--caching_dir', default='/datasets/models/tacotron/cache')
@@ -387,9 +392,7 @@ def run(testrun: bool = False):
   log('Wavenet Train\n')
   log('###########################################################\n')
 
-  checkpoint = train(log_dir, args, modified_hp)
-  if checkpoint is None:
-    raise ('Error occured while training Wavenet, Exiting!')
+  train(log_dir, args, modified_hp)
 
 if __name__ == "__main__":
   run(testrun=True)

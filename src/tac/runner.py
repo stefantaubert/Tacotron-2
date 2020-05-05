@@ -1,9 +1,10 @@
 from src.tac.preprocessing.Preprocessor import run as run_preprocessing
-from src.tac.training.tacotron_training import run as run_tacotron_training
-from src.tac.training.tacotron_gta_synthesis import run as run_gta
-from src.tac.training.wav_training import run as run_wav_training
 from src.tac.synthesis.tacotron_eval import run as run_tacotron_synth
+from src.tac.synthesis.tacotron_gta_synthesis import run as run_gta
 from src.tac.synthesis.wavenet_synthesis import run as run_wavnet_synth
+from src.tac.training.tacotron_training import run as run_tacotron_training
+from src.tac.training.wav_training import run as run_wav_training
+
 
 def run(testrun: bool = False):
   run_preprocessing()
@@ -20,3 +21,4 @@ def run(testrun: bool = False):
 
 if __name__ == "__main__":
   run(testrun=True)
+  #run(testrun=False)

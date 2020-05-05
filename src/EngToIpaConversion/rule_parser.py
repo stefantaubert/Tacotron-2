@@ -7,6 +7,7 @@ from src.EngToIpaConversion.rules.RuleOmit import RuleOmit
 from src.EngToIpaConversion.rules.RuleRemoveThe import RuleRemoveThe
 from src.EngToIpaConversion.rules.RuleSubstitue import RuleSubstitue
 from src.EngToIpaConversion.rules.RuleSubstitue2 import RuleSubstitue2
+from src.EngToIpaConversion.rules.VoicedFricative1 import VoicedFricative1
 
 _r_match = "(\d+)(?:\<((?:[0]*\.\d*)|(?:0)|(?:1))\>)?"
 
@@ -18,6 +19,7 @@ _rules_dict = {
   '5': RuleHeShe,
   '6': RuleRemoveThe,
   '7': RuleInsertA,
+  '8': VoicedFricative1,
 }
 
 def get_rule(rule_id: str):
@@ -25,10 +27,13 @@ def get_rule(rule_id: str):
   is_valid = result != None
   if is_valid:
     rule, likelihood = result.groups()
-    likelihood = float(likelihood) if likelihood != None else 1.0
+    likelihood = float(likelihood) if likelihood != None else None
     if rule in _rules_dict.keys():
       rule_type = _rules_dict[rule]
-      instance = rule_type(likelihood)
+      if likelihood == None:
+        instance = rule_type()
+      else:
+        instance = rule_type(likelihood)
       return instance
     else:
       print('Rule {} unknown.'.format(rule))
@@ -44,3 +49,7 @@ def get_rules_from_str(inp_str: str):
     if rule_instance != None:
       rules.append(rule_instance)
   return rules
+
+def print_rules(rules: list):
+  for rule in rules:
+    print(" \'{}\' with likelihood of {:.0f}%".format(rule.name, rule.likelihood * 100))

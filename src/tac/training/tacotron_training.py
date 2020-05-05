@@ -4,6 +4,7 @@ import subprocess
 import time
 import traceback
 from datetime import datetime
+from time import sleep
 
 import numpy as np
 import tensorflow as tf
@@ -18,6 +19,7 @@ from src.tac.core.tacotron.utils.ValueWindow import ValueWindow
 from src.tac.hparams import hparams_debug_string
 from src.tac.preprocessing.text.conversion.SymbolConverter import get_from_file
 from src.tac.preprocessing.text.TextProcessor import get_symbols_file
+
 
 log = infolog.log
 
@@ -403,14 +405,24 @@ def train(log_dir, args, hparams):
           log('\nSaving Model Character Embeddings visualization..')
           add_embedding_stats(summary_writer, [model.embedding_table.name], checkpoint_state.model_checkpoint_path)
           log('Tacotron Character embeddings have been updated on tensorboard!')
-  
+
+    log("train it finished.")
+
+  log("request stop.")
   coord.request_stop()
+  log("waitfor stop.")
   coord.wait_for_stop()
+  log("close queue.")
+  #feeder.close_queue()
   # do not finish.
+  log("wait threads exit.")
   #coord.join(threads)
 
   try:
+    log("close session.")
     sess.close()
+    log("reset graph.")
+    tf.reset_default_graph()
   except Exception as e:
     log("Session bug occured.")
     #log('Exiting due to exception: {}'.format(e), slack=True)
@@ -418,6 +430,8 @@ def train(log_dir, args, hparams):
     #coord.request_stop(e)
     #coord.wait_for_stop()
     #raise Exception('Exception occured.')
+
+  sleep(0.5)
 
   log('Tacotron training complete after {} global steps!'.format(args.tacotron_train_steps), slack=True)
 
@@ -433,7 +447,6 @@ def get_infolog_path(log_dir: str) -> str:
 def run(testrun: bool = False):
   import argparse
   import os
-  from time import sleep
 
   import tensorflow as tf
 
@@ -445,7 +458,7 @@ def run(testrun: bool = False):
   train_steps = 20000
   checkpoint_intervall = 1000
   if testrun:
-    train_steps = 1
+    train_steps = 10
     checkpoint_intervall = 1
 
   parser.add_argument('--caching_dir', default='/datasets/models/tacotron/cache')

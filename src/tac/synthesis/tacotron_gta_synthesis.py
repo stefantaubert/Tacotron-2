@@ -80,18 +80,19 @@ def run_synthesis(args, checkpoint, hparams):
   conv = get_from_file(symbol_file)
   with open(gta_map_file, 'w') as file:
     for i, meta in enumerate(tqdm(metadata)):
-      text_paths = [os.path.join(txt_dir, "{}.npy".format(m[0])) for m in meta]
-      text_symbols = [np.load(pth) for pth in text_paths]
-      # trim ~ at the end
-      texts = [conv.sequence_to_original_text(x) for x in text_symbols]
-      #texts = [m[5] for m in meta]
-      mel_filenames = [os.path.join(mel_dir, "{}.npy".format(m[0])) for m in meta]
-      wav_filenames = [os.path.join(wav_dir, "{}.npy".format(m[0])) for m in meta]
-      basenames = [m[0] for m in meta]
-      mel_output_filenames, speaker_ids = synth.synthesize(texts, basenames, synth_dir, None, mel_filenames)
+      if i % 10 == 0:
+        text_paths = [os.path.join(txt_dir, "{}.npy".format(m[0])) for m in meta]
+        text_symbols = [np.load(pth) for pth in text_paths]
+        # trim ~ at the end
+        texts = [conv.sequence_to_original_text(x) for x in text_symbols]
+        #texts = [m[5] for m in meta]
+        mel_filenames = [os.path.join(mel_dir, "{}.npy".format(m[0])) for m in meta]
+        wav_filenames = [os.path.join(wav_dir, "{}.npy".format(m[0])) for m in meta]
+        basenames = [m[0] for m in meta]
+        mel_output_filenames, speaker_ids = synth.synthesize(texts, basenames, synth_dir, None, mel_filenames)
 
-      for elems in zip(wav_filenames, mel_filenames, mel_output_filenames, speaker_ids, texts):
-        file.write('|'.join([str(x) for x in elems]) + '\n')
+        for elems in zip(wav_filenames, mel_filenames, mel_output_filenames, speaker_ids, texts):
+          file.write('|'.join([str(x) for x in elems]) + '\n')
 
   log('synthesized mel spectrograms at {}'.format(synth_dir))
   return gta_map_file
