@@ -156,13 +156,13 @@ class Feeder:
 
 	def start_threads(self, session):
 		self._session = session
-		thread = threading.Thread(name='background', target=self._enqueue_next_train_group)
-		thread.daemon = True #Thread will close when parent quits
-		thread.start()
+		thread1 = threading.Thread(name='background', target=self._enqueue_next_train_group)
+		thread1.daemon = True #Thread will close when parent quits
+		thread1.start()
 
-		thread = threading.Thread(name='background', target=self._enqueue_next_test_group)
-		thread.daemon = True #Thread will close when parent quits
-		thread.start()
+		thread2 = threading.Thread(name='background', target=self._enqueue_next_test_group)
+		thread2.daemon = True #Thread will close when parent quits
+		thread2.start()
 
 	def _get_test_groups(self):
 		meta = self._test_meta[self._test_offset]
@@ -220,14 +220,16 @@ class Feeder:
 			log('\nGenerated {} train batches of size {} in {:.3f} sec'.format(len(batches), n, time.time() - start))
 			for batch in batches:
 				feed_dict = dict(zip(self._placeholders, self._prepare_batch(batch)))
-				self._session.run(self._enqueue_op, feed_dict=feed_dict)
+				if not self._coord.should_stop():
+					self._session.run(self._enqueue_op, feed_dict=feed_dict)
 
 	def _enqueue_next_test_group(self):
 		test_batches = self.make_test_batches()
 		while not self._coord.should_stop():
 			for batch in test_batches:
 				feed_dict = dict(zip(self._placeholders, self._prepare_batch(batch)))
-				self._session.run(self._eval_enqueue_op, feed_dict=feed_dict)
+				if not self._coord.should_stop():
+					self._session.run(self._eval_enqueue_op, feed_dict=feed_dict)
 
 	def _get_next_example(self):
 		'''Get a single example (input, output, len_output) from disk

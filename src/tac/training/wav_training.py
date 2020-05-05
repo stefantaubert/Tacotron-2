@@ -341,12 +341,17 @@ def train(log_dir, args, hparams):
           log('WaveNet Speaker embeddings have been updated on tensorboard!')
 
       log('Wavenet training complete after {} global steps'.format(args.wavenet_train_steps), slack=True)
-      return save_dir
+      coord.request_stop()
+      coord.wait_for_stop()
 
     except Exception as e:
       log('Exiting due to exception: {}'.format(e), slack=True)
       traceback.print_exc()
       coord.request_stop(e)
+      coord.wait_for_stop()
+      raise Exception('Exception occured.')
+
+  return save_dir
 
 
 def run(testrun: bool = False):

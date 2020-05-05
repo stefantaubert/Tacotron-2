@@ -1,4 +1,4 @@
-from src.tac.preprocessing.main import run as run_preprocessing
+from src.tac.preprocessing.Preprocessor import run as run_preprocessing
 from src.tac.training.tacotron_training import run as run_tacotron_training
 from src.tac.training.tacotron_gta_synthesis import run as run_gta
 from src.tac.training.wav_training import run as run_wav_training

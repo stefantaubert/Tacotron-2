@@ -119,7 +119,7 @@ def run():
   log('Tacotron GTA Synthesis\n')
   log('###########################################################\n')
   tacotron_pretrained = get_save_dir(log_dir)
-  input_path = run_synthesis(args, tacotron_pretrained, modified_hp)
+  run_synthesis(args, tacotron_pretrained, modified_hp)
   #tf.reset_default_graph()
   #Sleep 1/2 second to let previous graph close and avoid error messages while Wavenet is training
   #sleep(0.5)
