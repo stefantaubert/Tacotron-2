@@ -6,8 +6,8 @@ from tqdm import tqdm
 
 from src.etc.dir_copy import copytree
 
-from src.CMUDict.CMUDict import CMUDict
-from src.CMUDict.sentence_to_ipa import sentence_to_ipa
+from src.cmudict.src.CMUDict import get_dict
+from src.tools.sentence_to_ipa import sentence_to_ipa
 from src.tac.preprocessing.parser.LJSpeechDatasetParser import (
     LJSpeechDatasetParser, get_metadata_filepath)
 
