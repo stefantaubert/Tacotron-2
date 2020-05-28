@@ -1,0 +1,3 @@
+[submodule "src/cmudict"]
+	path = src/cmudict
+	url = git@github.com:stefantaubert/cmudict-parser.git

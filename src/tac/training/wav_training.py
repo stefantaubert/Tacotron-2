@@ -363,8 +363,9 @@ def run(testrun: bool = False):
   import argparse
   parser = argparse.ArgumentParser()
 
-  train_steps = 2000
-  checkpoint_intervall = 10
+  train_steps = 5000
+  checkpoint_intervall = 100
+  
   if testrun:
     train_steps = 20
     checkpoint_intervall = 1

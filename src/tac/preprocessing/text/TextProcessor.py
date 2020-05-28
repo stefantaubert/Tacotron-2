@@ -5,7 +5,8 @@ from functools import partial
 import numpy as np
 from tqdm import tqdm
 
-from src.etc.IPA_conversion import text_to_ipa
+from src.CMUDict.CMUDict import CMUDict
+from src.CMUDict.sentence_to_ipa import sentence_to_ipa
 from src.etc.IPA_symbol_extraction import extract_symbols
 from src.tac.hparams import hparams
 from src.tac.preprocessing.parser.DatasetParserBase import DatasetParserBase
@@ -43,6 +44,11 @@ class TextProcessor():
     utterances = dataset.parse()
     ds_format = dataset.get_format()
  
+    if self.hp.convert_to_ipa:
+      print("Initializing IPA dictionary...")
+      self.cmudict = CMUDict()
+      self.cmudict.load()
+    
     print('preprocess text step 1...')
     processed_utterances = []
     all_symbols = set()
@@ -53,7 +59,7 @@ class TextProcessor():
         adjusted_text = self.adjuster.adjust(text)
 
         if self.hp.convert_to_ipa:
-            ipa = text_to_ipa(adjusted_text)
+            ipa = sentence_to_ipa(adjusted_text, self.cmudict)
             symbols = extract_symbols(ipa)
         else:
           symbols = list(adjusted_text)

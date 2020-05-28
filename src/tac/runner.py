@@ -20,5 +20,5 @@ def run(testrun: bool = False):
   run_wavnet_synth()
 
 if __name__ == "__main__":
-  run(testrun=True)
-  #run(testrun=False)
+  #run(testrun=True)
+  run(testrun=False)
